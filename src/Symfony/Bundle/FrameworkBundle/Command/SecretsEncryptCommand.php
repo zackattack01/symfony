@@ -86,7 +86,7 @@ HELP
             $iv = $secretKeyInfo['iv'];
         }
 
-        $this->secretsWriter->writeSecrets($masterKey, $iv, SecretsWriter::ENCRYPTION_CONFIG);
+        $this->secretsWriter->writeSecrets($masterKey, $iv, SecretsWriter::ENCRYPT_ACTION);
         $this->io->success('Secrets have been successfully encrypted. Be sure to securely store the password and iv used.');
     }
 }

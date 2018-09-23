@@ -4,42 +4,45 @@ namespace Symfony\Bundle\FrameworkBundle\Secrets;
 
 use Symfony\Bundle\FrameworkBundle\Secrets\Exception\SecretsMissingException;
 use Symfony\Bundle\FrameworkBundle\Secrets\Exception\InvalidSecretsFormatException;
-use Symfony\Component\HttpKernel\KernelInterface;
 
 class BaseSecretsHandler
 {
     const ENCRYPTION_METHOD = "aes-256-cbc";
-    const PLAINTEXT_SECRETS = "/config/secrets_{env}.json";
-    const ENCRYPTED_SECRETS = "/config/secrets_{env}.enc.json";
+    const DECRYPT_ACTION = "decrypt";
+    const ENCRYPT_ACTION = "encrypt";
 
-    private $kernel;
+    protected $encryptedSecretsLocation;
+    protected $plaintextSecretsLocation;
 
-    public function __construct(KernelInterface $kernel)
+    public function __construct(string $projectRoot, string $environment)
     {
-        $this->kernel = $kernel;
+        $this->encryptedSecretsLocation = "$projectRoot/config/packages/$environment/secrets.enc.json";
+        $this->plaintextSecretsLocation = "$projectRoot/var/cache/$environment/secrets.json";
     }
 
-    protected function readSecrets(string $rawSecretsLocation)
+    protected function readSecrets(string $secretsLocation)
     {
-        $formattedSecretsLocation = $this->formattedSecretsLocation($rawSecretsLocation);
-
-        if (!file_exists($formattedSecretsLocation)) {
-            throw new SecretsMissingException($formattedSecretsLocation);
+        if (!file_exists($secretsLocation)) {
+            throw new SecretsMissingException($secretsLocation);
         }
 
-        $secrets = json_decode(file_get_contents($formattedSecretsLocation), true);
+        $secrets = json_decode(file_get_contents($secretsLocation), true);
         
         if (is_null($secrets)) {
-            throw new InvalidSecretsFormatException($formattedSecretsLocation);
+            throw new InvalidSecretsFormatException($secretsLocation);
         }
 
         return $secrets;
     }
 
-    protected function formattedSecretsLocation(string $locationTemplate)
+    protected function cipherSecretValue(string $secretValue, string $masterKey, string $iv, string $transformationType)
     {
-        $filename = str_replace("{env}", $this->kernel->getEnvironment(), $locationTemplate);
-        $baseLocation = $this->kernel->getRootDir().'/..';
-        return $baseLocation.$filename;
+        if (self::ENCRYPT_ACTION === $transformationType) {
+            return openssl_encrypt($secretValue, self::ENCRYPTION_METHOD, $masterKey, $options = null, $iv);
+        } elseif (self::DECRYPT_ACTION === $transformationType) {
+            return openssl_decrypt($secretValue, self::ENCRYPTION_METHOD, $masterKey, $options = null, $iv);
+        } else {
+            throw new \RuntimeException(sprintf('transformationType "%s" not supported by %s', $transformationType, get_class($this)));
+        }
     }
 }

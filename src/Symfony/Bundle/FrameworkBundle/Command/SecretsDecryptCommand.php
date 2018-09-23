@@ -62,7 +62,7 @@ HELP
         $masterKey = $input->getArgument('master-key');
         $iv = $input->getArgument('iv');
 
-        $this->secretsWriter->writeSecrets($masterKey, $iv, SecretsWriter::DECRYPTION_CONFIG);
+        $this->secretsWriter->writeSecrets($masterKey, $iv, SecretsWriter::DECRYPT_ACTION);
         $this->io->success('Secrets have been decrypted. Make sure this file is not committed to version control.');
     }
 }
