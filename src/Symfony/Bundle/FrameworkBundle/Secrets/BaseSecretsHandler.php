@@ -8,7 +8,7 @@ use Symfony\Component\HttpKernel\KernelInterface;
 
 class BaseSecretsHandler
 {
-    const ENCRYPTION_METHOD = "aes-256-cfb";
+    const ENCRYPTION_METHOD = "aes-256-cbc";
     const PLAINTEXT_SECRETS = "/config/secrets_{env}.json";
     const ENCRYPTED_SECRETS = "/config/secrets_{env}.enc.json";
 

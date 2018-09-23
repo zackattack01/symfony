@@ -49,9 +49,10 @@ Always store your master key and iv in a secure location; you will not be able t
 
 HELP
             )
-            ->addArgument('master-key', InputArgument::REQUIRED, 'The master key to be used for encryption.')
+            ->addArgument('master-key', InputArgument::OPTIONAL, 'The master key to be used for encryption.')
             ->addArgument('iv', InputArgument::OPTIONAL, 'A 16 byte initialization vector to be used for encryption.')
-            ->addOption('generate-iv', null, InputOption::VALUE_NONE, 'Randomly generate an initialization vector for encryption.');
+            ->addOption('generate-iv', null, InputOption::VALUE_NONE, 'Randomly generate an initialization vector for encryption.')
+            ->addOption('from-file', 'f', InputOption::VALUE_REQUIRED, 'Read the master key and IV from secrets file');
         ;
     }
 
@@ -68,16 +69,21 @@ HELP
         $masterKey = $input->getArgument('master-key');
         $iv = $input->getArgument('iv');
         $generateIv = $input->getOption('generate-iv');
+        $keyFileLocation = $input->getOption('from-file');
 
-        //TODO validate iv is 16 bytes
+        if (is_null($keyFileLocation)) {
+            if ((!$generateIv && (is_null($iv) || strlen($iv) !== 16)) || ($generateIv && (!is_null($iv)))) {
+                throw new RuntimeException("Either provide a 16-byte initialization vector or use the --generate-iv flag to have one randomly generated.");
+            }
 
-        if ((!$generateIv && is_null($iv)) || ($generateIv && !is_null($iv))) {
-            throw new RuntimeException("Either provide a 16-byte initialization vector or use the --generate-iv flag to have one randomly generated.");
-        }
-
-        if ($generateIv) {
-            $iv = base64_encode(random_bytes(12));
-            $this->io->note(sprintf('Generated IV: %s', $iv));
+            if ($generateIv) {
+                $iv = base64_encode(random_bytes(12));
+                $this->io->note(sprintf('Generated IV: %s', $iv));
+            }
+        } else {
+            $secretKeyInfo = $this->secretsWriter->readSecretKeyFile($keyFileLocation);
+            $masterKey = $secretKeyInfo['master_key'];
+            $iv = $secretKeyInfo['iv'];
         }
 
         $this->secretsWriter->writeSecrets($masterKey, $iv, SecretsWriter::ENCRYPTION_CONFIG);

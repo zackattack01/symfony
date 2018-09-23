@@ -26,6 +26,17 @@ class SecretsWriter extends BaseSecretsHandler
         return file_put_contents($destinationFile, $formattedSecrets) > 0;
     }
 
+    public function writeSecretKeyFile(string $fileLocation)
+    {
+        //TODO
+    }
+
+
+    public function readSecretKeyFile(string $fileLocation)
+    {
+        //TODO
+    }
+
     public function transformSecrets(string $masterKey, string $iv, array $secrets, string $transformationType)
     {
         $transformedSecrets = [];
