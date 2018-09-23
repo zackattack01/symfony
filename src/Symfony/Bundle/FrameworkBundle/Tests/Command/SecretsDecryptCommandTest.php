@@ -20,7 +20,7 @@ class SecretsDecryptCommandTest extends TestCase
         $secretsWriter
             ->expects($this->once())
             ->method('writeSecrets')
-            ->with(self::EXPECTED_MASTER_KEY, self::EXPECTED_IV, SecretsWriter::DECRYPTION_CONFIG);
+            ->with(self::EXPECTED_MASTER_KEY, self::EXPECTED_IV, SecretsWriter::DECRYPT_ACTION);
         $tester = $this->createCommandTester($secretsWriter);
 
         $responseCode = $tester->execute(['master-key' => self::EXPECTED_MASTER_KEY, 'iv' => self::EXPECTED_IV]);
@@ -95,9 +95,7 @@ class SecretsDecryptCommandTest extends TestCase
     private function generateMockSecretsWriter()
     {
         return $this->getMockBuilder(SecretsWriter::class)
-                            ->setConstructorArgs([
-                                $this->getMockBuilder(KernelInterface::class)->getMock()
-                            ])
+                            ->setConstructorArgs(["", "test"])
                             ->getMock();
     }
 }

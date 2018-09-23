@@ -13,7 +13,8 @@ use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Secrets\SecretsWriter;
 
 /**
- * Console command to generate an encrypted secrets file based on the contents of config/secrets_{env}.json
+ * TODO update this to be an edit command
+ * Console command to generate an encrypted secrets file based on the contents of /var/cache/env/secrets.json
  * Usage: php bin/console secrets:encrypt
  */
 class SecretsEncryptCommand extends Command
@@ -72,6 +73,10 @@ HELP
         $keyFileLocation = $input->getOption('from-file');
 
         if (is_null($keyFileLocation)) {
+            if (is_null($masterKey)) {
+                throw new RuntimeException("Either provide a master key or specify a file to read it from with --from-file.");
+            }
+
             if ((!$generateIv && (is_null($iv) || strlen($iv) !== 16)) || ($generateIv && (!is_null($iv)))) {
                 throw new RuntimeException("Either provide a 16-byte initialization vector or use the --generate-iv flag to have one randomly generated.");
             }

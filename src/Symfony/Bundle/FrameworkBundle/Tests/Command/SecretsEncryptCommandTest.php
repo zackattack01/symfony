@@ -20,7 +20,7 @@ class SecretsEncryptCommandTest extends TestCase
         $secretsWriter
             ->expects($this->once())
             ->method('writeSecrets')
-            ->with(self::EXPECTED_MASTER_KEY, self::EXPECTED_IV, SecretsWriter::ENCRYPTION_CONFIG);
+            ->with(self::EXPECTED_MASTER_KEY, self::EXPECTED_IV, SecretsWriter::ENCRYPT_ACTION);
         $tester = $this->createCommandTester($secretsWriter);
 
         $responseCode = $tester->execute(['master-key' => self::EXPECTED_MASTER_KEY, 'iv' => self::EXPECTED_IV]);
@@ -33,7 +33,7 @@ class SecretsEncryptCommandTest extends TestCase
         $secretsWriter
             ->expects($this->once())
             ->method('writeSecrets')
-            ->with(self::EXPECTED_MASTER_KEY, $this->matchesRegularExpression('/.{16}/'), SecretsWriter::ENCRYPTION_CONFIG);
+            ->with(self::EXPECTED_MASTER_KEY, $this->matchesRegularExpression('/.{16}/'), SecretsWriter::ENCRYPT_ACTION);
         $tester = $this->createCommandTester($secretsWriter);
 
         $responseCode = $tester->execute(['master-key' => self::EXPECTED_MASTER_KEY, '--generate-iv' => true]);
@@ -110,9 +110,7 @@ class SecretsEncryptCommandTest extends TestCase
     private function generateMockSecretsWriter()
     {
         return $this->getMockBuilder(SecretsWriter::class)
-                            ->setConstructorArgs([
-                                $this->getMockBuilder(KernelInterface::class)->getMock()
-                            ])
+                            ->setConstructorArgs(["", "test"])
                             ->getMock();
     }
 }
