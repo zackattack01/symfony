@@ -24,55 +24,19 @@ class SecretsWriterTest extends TestCase
         $this->secretsWriter = new SecretsWriter("", "test");  
     }
 
-    public function testTransformSecretsBasicKeyValuePair()
+    public function testGenerateEncryptedSecrets()
     {
-        $plaintextSecretPair = [self::USERNAME_KEY => self::USERNAME_VALUE, self::PASSWORD_KEY => self::PASSWORD_VALUE];
-        $encryptedValues = $this->secretsWriter->transformSecrets(self::MASTER_KEY, self::IV, $plaintextSecretPair, SecretsWriter::ENCRYPT_ACTION);
-        $this->assertEquals($this->generateExpectedSecret(self::USERNAME_VALUE), $encryptedValues[self::USERNAME_KEY]);
-        $this->assertEquals($this->generateExpectedSecret(self::PASSWORD_VALUE), $encryptedValues[self::PASSWORD_KEY]);
-
-        $decryptedValues = $this->secretsWriter->transformSecrets(self::MASTER_KEY, self::IV, $encryptedValues, SecretsWriter::DECRYPT_ACTION);
-        $this->assertEquals($plaintextSecretPair, $decryptedValues);
+        
     }
 
-    public function testTransformSecretsNestedKeyValuePair()
-    {
-        $plaintextNestedSecrets = ['account_credentials' => ['admin' => [self::USERNAME_KEY => self::USERNAME_VALUE, self::PASSWORD_KEY => self::PASSWORD_VALUE]]];
-        $encryptedValues = $this->secretsWriter->transformSecrets(self::MASTER_KEY, self::IV, $plaintextNestedSecrets, SecretsWriter::ENCRYPT_ACTION);
-        $this->assertEquals($this->generateExpectedSecret(self::USERNAME_VALUE), $encryptedValues['account_credentials']['admin'][self::USERNAME_KEY]);
-        $this->assertEquals($this->generateExpectedSecret(self::PASSWORD_VALUE), $encryptedValues['account_credentials']['admin'][self::PASSWORD_KEY]);
-
-        $decryptedValues = $this->secretsWriter->transformSecrets(self::MASTER_KEY, self::IV, $encryptedValues, SecretsWriter::DECRYPT_ACTION);
-        $this->assertEquals($plaintextNestedSecrets, $decryptedValues);
-    }
-
-    public function testTransformSecretsNestedKeyWithArrayValues()
-    {
-        $extraKeyValue = "arraySupportTesterKey";
-        $numericValue = 3;
-        $plaintextArraySecrets = ['account_credentials' => ['admin_keys' => [self::PASSWORD_VALUE, $extraKeyValue, $numericValue]]];
-        $encryptedValues = $this->secretsWriter->transformSecrets(self::MASTER_KEY, self::IV, $plaintextArraySecrets, SecretsWriter::ENCRYPT_ACTION);
-        $this->assertEquals($this->generateExpectedSecret(self::PASSWORD_VALUE), $encryptedValues['account_credentials']['admin_keys'][0]);
-        $this->assertEquals($this->generateExpectedSecret($extraKeyValue), $encryptedValues['account_credentials']['admin_keys'][1]);
-        $this->assertEquals($this->generateExpectedSecret($numericValue), $encryptedValues['account_credentials']['admin_keys'][2]);
-
-        $decryptedValues = $this->secretsWriter->transformSecrets(self::MASTER_KEY, self::IV, $encryptedValues, SecretsWriter::DECRYPT_ACTION);
-        $this->assertEquals($plaintextArraySecrets, $decryptedValues);
-    }
-
-    public function testWriteSecrets()
-    {
-        //TODO after refactoring to use File class
-    }
-
-    public function generateExpectedSecret($plaintext)
+    public function generateExpectedSecret($plaintext, $iv)
     {
         return openssl_encrypt(
             $plaintext,
             BaseSecretsHandler::ENCRYPTION_METHOD,
             self::MASTER_KEY,
             $options = null,
-            self::IV
+            $iv
         );
     }
 }

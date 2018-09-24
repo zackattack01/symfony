@@ -12,58 +12,30 @@ use Symfony\Bundle\FrameworkBundle\Secrets\SecretsWriter;
 class SecretsEncryptCommandTest extends TestCase
 {
     const EXPECTED_MASTER_KEY = 'm@st3rP@zw0rd';
-    const EXPECTED_IV = 'ahdTXAM/vxvmksd6';
 
     public function testAcceptsMasterKeyAndIV()
     {
         $secretsWriter = $this->generateMockSecretsWriter();
         $secretsWriter
             ->expects($this->once())
-            ->method('writeSecrets')
-            ->with(self::EXPECTED_MASTER_KEY, self::EXPECTED_IV, SecretsWriter::ENCRYPT_ACTION);
+            ->method('writeEncryptedSecrets')
+            ->with(self::EXPECTED_MASTER_KEY);
         $tester = $this->createCommandTester($secretsWriter);
 
-        $responseCode = $tester->execute(['master-key' => self::EXPECTED_MASTER_KEY, 'iv' => self::EXPECTED_IV]);
+        $responseCode = $tester->execute(['master-key' => self::EXPECTED_MASTER_KEY]);
         $this->assertEquals(0, $responseCode, 'Returns 0 after successful encryption');
     }
 
-    public function testAcceptsMasterKeyAndGeneratesIV()
-    {
-        $secretsWriter = $this->generateMockSecretsWriter();
-        $secretsWriter
-            ->expects($this->once())
-            ->method('writeSecrets')
-            ->with(self::EXPECTED_MASTER_KEY, $this->matchesRegularExpression('/.{16}/'), SecretsWriter::ENCRYPT_ACTION);
-        $tester = $this->createCommandTester($secretsWriter);
-
-        $responseCode = $tester->execute(['master-key' => self::EXPECTED_MASTER_KEY, '--generate-iv' => true]);
-        $this->assertEquals(0, $responseCode, 'Returns 0 after successful encryption.');
-        //user should be shown the generated IV
-        $this->assertRegExp('/Generated IV: .{16}/', $tester->getDisplay());
-    }
-
-    public function testRequiresMasterKeyAndIVorGenerateIVArg()
+    public function testRequiresMasterKeyIfNoFileProvided()
     {
         $secretsWriter = $this->generateMockSecretsWriter();
         $secretsWriter
             ->expects($this->never())
-            ->method('writeSecrets');
-        $tester = $this->createCommandTester($secretsWriter);
-
-        $this->expectException('Symfony\Component\Console\Exception\RuntimeException', 'Raises a RuntimeException if user does not supply or request an IV.');
-        $responseCode = $tester->execute(['master-key' => self::EXPECTED_MASTER_KEY]);
-    }
-
-    public function testAlwaysRequiresMasterKey()
-    {
-        $secretsWriter = $this->generateMockSecretsWriter();
-        $secretsWriter
-            ->expects($this->never())
-            ->method('writeSecrets');
+            ->method('writeEncryptedSecrets');
         $tester = $this->createCommandTester($secretsWriter);
 
         $this->expectException('Symfony\Component\Console\Exception\RuntimeException', 'Raises a RuntimeException if user does not supply a master-key.');
-        $responseCode = $tester->execute(['iv' => self::EXPECTED_IV]);
+        $responseCode = $tester->execute([]);
     }
 
     /**

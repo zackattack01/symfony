@@ -4,20 +4,28 @@ namespace Symfony\Bundle\FrameworkBundle\Secrets;
 
 class SecretsWriter extends BaseSecretsHandler
 {
-    public function writeSecrets(string $masterKey, string $iv, string $transformationAction)
+    public function writeEncryptedSecrets(string $masterKey)
     {
-        if (parent::ENCRYPT_ACTION === $transformationAction) {
-            $sourceSecretsLocation = $this->plaintextSecretsLocation;
-            $destinationFile = $this->encryptedSecretsLocation;
-        } elseif (parent::DECRYPT_ACTION === $transformationAction) {
-            $sourceSecretsLocation = $this->encryptedSecretsLocation;
-            $destinationFile = $this->plaintextSecretsLocation;
-        }
-        $secrets = $this->readSecrets($sourceSecretsLocation);
-        $transformedSecrets = $this->transformSecrets($masterKey, $iv, $secrets, $transformationAction);
-        $formattedSecrets = json_encode($transformedSecrets, JSON_PRETTY_PRINT);
-        return file_put_contents($destinationFile, $formattedSecrets) > 0;
+        $encryptedSecrets = $this->generateEncryptedSecrets($masterKey);
+        $formattedSecrets = json_encode($encryptedSecrets, JSON_PRETTY_PRINT);
+        return file_put_contents($this->encryptedSecretsLocation, $formattedSecrets) > 0;
     }
+
+    public function writePlaintextSecrets(string $masterKey)
+    {
+        $decryptedSecrets = $this->generatePlaintextSecrets($masterKey);
+        $formattedSecrets = json_encode($decryptedSecrets);
+        return file_put_contents($this->plaintextSecretsLocation, $formattedSecrets) > 0;
+    }
+
+    public function writeSingleSecret(string $secretName, string $secretValue, string $masterKey)
+    {
+        $encryptedSecrets = $this->readSecrets($this->encryptedSecretsLocation);
+        $this->addSingleSecret($secretName, $secretValue, $masterKey, $encryptedSecrets);
+        $formattedSecrets = json_encode($encryptedSecrets, JSON_PRETTY_PRINT);
+        return file_put_contents($this->encryptedSecretsLocation, $formattedSecrets) > 0;
+    }
+
 
     public function writeSecretKeyFile(string $fileLocation)
     {
@@ -30,25 +38,44 @@ class SecretsWriter extends BaseSecretsHandler
         //TODO
     }
 
-    public function transformSecrets(string $masterKey, string $iv, array $secrets, string $transformationAction)
+    public function generateEncryptedSecrets(string $masterKey)
     {
-        $transformedSecrets = [];
-        //TODO remove recursive calls and array support
-        foreach ($secrets as $secretName => $secret) {
-            if (is_array($secret)) {
-                // to support non-associative arrays as values (e.g., a set of tokens)
-                if (array_values($secret) === $secret) {
-                    foreach ($secret as $singleValue) {
-                        $transformedSecrets[$secretName][] = $this->cipherSecretValue($singleValue, $masterKey, $iv, $transformationAction);
-                    }
-                } else {
-                    $transformedSecrets[$secretName] = $this->transformSecrets($masterKey, $iv, $secret, $transformationAction);
-                }
-            } else {
-                $transformedSecrets[$secretName] = $this->cipherSecretValue($secret, $masterKey, $iv, $transformationAction);
-            }
+        $plaintextSecrets = $this->readSecrets($this->plaintextSecretsLocation);
+        $encryptedSecrets = [];
+        foreach ($plaintextSecrets as $secretName => $secretValue) {
+            $this->addSingleSecret($secretName, $secretValue, $masterKey, $encryptedSecrets);
         }
 
-        return $transformedSecrets;
+        return $encryptedSecrets;
+    }
+
+    public function generatePlaintextSecrets(string $masterKey)
+    {
+        $encryptedSecrets = $this->readSecrets($this->encryptedSecretsLocation);
+        $plaintextSecrets = [];
+        foreach ($encryptedSecrets as $secretName => $secretValue) {
+            $iv = $secretValue[parent::IV_KEY];
+            $ciphertext = $secretValue[parent::CIPHERTEXT_KEY];
+            $plaintextSecrets[$secretName] = $this->decryptSecretValue($ciphertext, $masterKey, $iv);
+        }
+
+        return $plaintextSecrets;
+    }
+
+    public function addSingleSecret(string $secretName, string $secretValue, string $masterKey, array &$secrets)
+    {
+        $iv = $this->generateIv();
+        $secrets[$secretName][parent::IV_KEY] = $iv;
+        $secrets[$secretName][parent::CIPHERTEXT_KEY] = $this->encryptSecretValue($secretValue, $masterKey, $iv);
+    }
+
+    private function encryptSecretValue(string $secretValue, string $masterKey, string $iv)
+    {
+        return openssl_encrypt($secretValue, parent::ENCRYPTION_METHOD, $masterKey, $options = null, $iv);
+    }
+
+    private function generateIv()
+    {
+        return base64_encode(random_bytes(12));
     }
 }

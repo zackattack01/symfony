@@ -142,5 +142,10 @@
             <argument type="service" id="secrets_writer" />
             <tag name="console.command" command="secrets:decrypt" />
         </service>
+
+        <service id="console.command.secrets_add" class="Symfony\Bundle\FrameworkBundle\Command\SecretsAddCommand">
+            <argument type="service" id="secrets_writer" />
+            <tag name="console.command" command="secrets:add" />
+        </service>
     </services>
 </container>

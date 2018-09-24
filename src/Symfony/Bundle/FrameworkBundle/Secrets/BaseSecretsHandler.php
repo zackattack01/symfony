@@ -8,8 +8,8 @@ use Symfony\Bundle\FrameworkBundle\Secrets\Exception\InvalidSecretsFormatExcepti
 class BaseSecretsHandler
 {
     const ENCRYPTION_METHOD = "aes-256-cbc";
-    const DECRYPT_ACTION = "decrypt";
-    const ENCRYPT_ACTION = "encrypt";
+    const CIPHERTEXT_KEY = "ciphertext";
+    const IV_KEY = "iv";
 
     protected $encryptedSecretsLocation;
     protected $plaintextSecretsLocation;
@@ -35,14 +35,8 @@ class BaseSecretsHandler
         return $secrets;
     }
 
-    protected function cipherSecretValue(string $secretValue, string $masterKey, string $iv, string $transformationType)
+    protected function decryptSecretValue(string $secretValue, string $masterKey, string $iv)
     {
-        if (self::ENCRYPT_ACTION === $transformationType) {
-            return openssl_encrypt($secretValue, self::ENCRYPTION_METHOD, $masterKey, $options = null, $iv);
-        } elseif (self::DECRYPT_ACTION === $transformationType) {
-            return openssl_decrypt($secretValue, self::ENCRYPTION_METHOD, $masterKey, $options = null, $iv);
-        } else {
-            throw new \RuntimeException(sprintf('transformationType "%s" not supported by %s', $transformationType, get_class($this)));
-        }
+        return openssl_decrypt($secretValue, self::ENCRYPTION_METHOD, $masterKey, $options = null, $iv);
     }
 }

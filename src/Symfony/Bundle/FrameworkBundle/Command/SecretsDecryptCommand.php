@@ -12,7 +12,7 @@ use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Secrets\SecretsWriter;
 
 /**
- * Console command to decrypt an encrypted secrets file based on the contents of config/secrets_{env}.enc.json
+ * Console command to decrypt an encrypted secrets file based on the contents of config/packages/{env}/secrets.enc.json
  * Usage: php bin/console secrets:decrypt
  */
 class SecretsDecryptCommand extends Command
@@ -33,19 +33,18 @@ class SecretsDecryptCommand extends Command
     protected function configure()
     {
         $this
-            ->setDescription('Decrypt config/secrets.enc and write contents to config/secrets.json')
+            ->setDescription('Decrypt config/packages/{env}/secrets.enc.json and write contents to var/cache/{env}/secrets.json')
             ->setHelp(<<<'HELP'
-The <info>%command.name%</info> command decrypts an encrypted secrets file in config/secrets.enc and writes the content to config/secrets.json:
+The <info>%command.name%</info> command decrypts encrypted secrets in config/packages/{env}/secrets.enc.json and writes the content to var/cache/{env}/secrets.json:
 
-  <info>php %command.full_name%</info>
+  <info>php %command.full_name% [master-key]</info>
 
-Ensure that secrets.json is included in .gitignore. Be sure to add this command to your deploy process to ensure the application will have
+Ensure that secrets.json file is included in .gitignore. Be sure to add this command to your deploy process to ensure the application will have
 access to your latest secrets.
 
 HELP
             )
             ->addArgument('master-key', InputArgument::REQUIRED, 'The master key to be used for decryption.')
-            ->addArgument('iv', InputArgument::REQUIRED, 'The 16 byte initialization vector to be used for decryption.');
         ;
     }
 
@@ -60,9 +59,8 @@ HELP
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $masterKey = $input->getArgument('master-key');
-        $iv = $input->getArgument('iv');
 
-        $this->secretsWriter->writeSecrets($masterKey, $iv, SecretsWriter::DECRYPT_ACTION);
+        $this->secretsWriter->writePlaintextSecrets($masterKey);
         $this->io->success('Secrets have been decrypted. Make sure this file is not committed to version control.');
     }
 }

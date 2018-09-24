@@ -13,13 +13,12 @@ use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Secrets\SecretsWriter;
 
 /**
- * TODO update this to be an edit command or remove entirely and have people only use the add command
- * Console command to generate an encrypted secrets file based on the contents of /var/cache/{env}/secrets.json
- * Usage: php bin/console secrets:encrypt
+ * Console command to add an encrypted secret
+ * Usage: php bin/console secrets:add
  */
-class SecretsEncryptCommand extends Command
+class SecretsAddCommand extends Command
 {
-    protected static $defaultName = 'secrets:encrypt';
+    protected static $defaultName = 'secrets:add';
     private $io;
     private $secretsWriter;
 
@@ -35,20 +34,21 @@ class SecretsEncryptCommand extends Command
     protected function configure()
     {
         $this
-            ->setDescription('Generate encrypted config/packages/{env}/secrets.enc.json from var/cache/{env}/secrets.json')
+            ->setDescription('Add a secret to config/packages/{env}/secrets.enc.json')
             ->setHelp(<<<'HELP'
-The <info>%command.name%</info> command generates an encrypted secrets file based on your existing secrets.json file:
+The <info>%command.name%</info> command adds an encrypted secret to config/packages/{env}/secrets.enc.json:
 
-  <info>php %command.full_name%</info>
+  <info>php %command.full_name% [secret-name] [secret-value] [master-key] </info>
 
 To decrypt this file based on the encrypted file generated here,
 add <info>php bin/console secrets:decrypt [master-key]</info> to your deploy process.
 
-After updating any values in secrets.json, rerun this command and commit the encrypted file to version control.
-Always store your master key in a secure location; you will not be able to recover your secrets without them.
+Always store your master key and iv in a secure location; you will not be able to recover your secrets without them.
 
 HELP
             )
+            ->addArgument('secret-name', InputArgument::REQUIRED, 'The variable name of the secret (e.g., DATABASE_URL).')
+            ->addArgument('secret-value', InputArgument::REQUIRED, 'The secret to be encrypted.')
             ->addArgument('master-key', InputArgument::OPTIONAL, 'The master key to be used for encryption.')
             ->addOption('from-file', 'f', InputOption::VALUE_REQUIRED, 'Read the master key and IV from secrets file');
         ;
@@ -64,6 +64,8 @@ HELP
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $secretName = $input->getArgument('secret-name');
+        $secretValue = $input->getArgument('secret-value');
         $masterKey = $input->getArgument('master-key');
         $keyFileLocation = $input->getOption('from-file');
 
@@ -76,8 +78,12 @@ HELP
             $masterKey = $secretKeyInfo['master_key'];
         }
 
-        $this->secretsWriter->writeEncryptedSecrets($masterKey);
-        $this->io->success('Secrets have been successfully encrypted. Be sure to securely store the master key used.');
+        //TODO add verification that key decrypts all existing values
+        $this->secretsWriter->writeSingleSecret($secretName, $secretValue, $masterKey);
+        $this->io->success(sprintf(
+            'Secret for %s has been successfully added. Be sure to securely store the master key used.',
+            $secretName
+        ));
     }
 }
 

@@ -12,18 +12,17 @@ use Symfony\Bundle\FrameworkBundle\Secrets\SecretsWriter;
 class SecretsDecryptCommandTest extends TestCase
 {
     const EXPECTED_MASTER_KEY = 'm@st3rP@zw0rd';
-    const EXPECTED_IV = 'ahdTXAM/vxvmksd6';
 
     public function testAcceptsMasterKeyAndIV()
     {
         $secretsWriter = $this->generateMockSecretsWriter();
         $secretsWriter
             ->expects($this->once())
-            ->method('writeSecrets')
-            ->with(self::EXPECTED_MASTER_KEY, self::EXPECTED_IV, SecretsWriter::DECRYPT_ACTION);
+            ->method('writePlaintextSecrets')
+            ->with(self::EXPECTED_MASTER_KEY);
         $tester = $this->createCommandTester($secretsWriter);
 
-        $responseCode = $tester->execute(['master-key' => self::EXPECTED_MASTER_KEY, 'iv' => self::EXPECTED_IV]);
+        $responseCode = $tester->execute(['master-key' => self::EXPECTED_MASTER_KEY]);
         $this->assertEquals(0, $responseCode, 'Returns 0 after successful decryption');
     }
 
@@ -32,23 +31,11 @@ class SecretsDecryptCommandTest extends TestCase
         $secretsWriter = $this->generateMockSecretsWriter();
         $secretsWriter
             ->expects($this->never())
-            ->method('writeSecrets');
+            ->method('writePlaintextSecrets');
         $tester = $this->createCommandTester($secretsWriter);
 
         $this->expectException('Symfony\Component\Console\Exception\RuntimeException', 'Raises a RuntimeException if user does not supply a master key.');
-        $responseCode = $tester->execute(['iv' => self::EXPECTED_IV]);
-    }
-
-    public function testRequiresIV()
-    {
-        $secretsWriter = $this->generateMockSecretsWriter();
-        $secretsWriter
-            ->expects($this->never())
-            ->method('writeSecrets');
-        $tester = $this->createCommandTester($secretsWriter);
-
-        $this->expectException('Symfony\Component\Console\Exception\RuntimeException', 'Raises a RuntimeException if user does not supply an IV.');
-        $responseCode = $tester->execute(['master-key' => self::EXPECTED_MASTER_KEY]);
+        $responseCode = $tester->execute([]);
     }
 
     /**
