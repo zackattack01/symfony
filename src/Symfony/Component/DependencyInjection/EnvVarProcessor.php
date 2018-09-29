@@ -21,7 +21,6 @@ use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 class EnvVarProcessor implements EnvVarProcessorInterface
 {
     private $container;
-    private $secretVarProcessor;
 
     public function __construct(ContainerInterface $container)
     {
@@ -45,7 +44,6 @@ class EnvVarProcessor implements EnvVarProcessorInterface
             'key' => 'bool|int|float|string|array',
             'resolve' => 'string',
             'string' => 'string',
-            'secret' => 'string'
         );
     }
 
