@@ -105,6 +105,7 @@ class Configuration implements ConfigurationInterface
         $this->addWebLinkSection($rootNode);
         $this->addLockSection($rootNode);
         $this->addMessengerSection($rootNode);
+        $this->addEncryptedSecretsSection($rootNode);
 
         return $treeBuilder;
     }
@@ -1109,6 +1110,39 @@ class Configuration implements ConfigurationInterface
                                         ->end()
                                     ->end()
                                 ->end()
+                            ->end()
+                        ->end()
+                    ->end()
+                ->end()
+            ->end()
+        ;
+    }
+
+    private function addEncryptedSecretsSection(ArrayNodeDefinition $rootNode)
+    {
+        $rootNode
+            ->children()
+                ->arrayNode('encrypted_secrets')
+                    ->info('encrypted secrets configuration')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->scalarNode('secrets_file')
+                            ->info('Set the file location to read encrypted secrets from')
+                            ->example("'%kernel.project_dir%/config/secrets.enc.json' to set the default file location in config/secrets.enc.json")
+                            ->defaultValue('%kernel.project_dir%/config/secrets.enc.json')
+                            ->treatNullLike('%kernel.project_dir%/config/secrets.enc.json')
+                            ->validate()
+                                ->ifTrue(function ($v) { return !\is_string($v); })
+                                ->thenInvalid('The "encrypted_secrets.secrets_file" should be a string path to an existing secrets file')
+                            ->end()
+                        ->end()
+                        ->scalarNode('master_key_file')
+                            ->info('Set the file location to read the master encryption key from')
+                            ->example("/etc/project/master-key")
+                            ->defaultValue(null)
+                            ->validate()
+                                ->ifTrue(function ($v) { return !(\is_string($v) || \is_null($v)); })
+                                ->thenInvalid('If set, the "encrypted_secrets.master_key_file" should be a string path to an existing file')
                             ->end()
                         ->end()
                     ->end()

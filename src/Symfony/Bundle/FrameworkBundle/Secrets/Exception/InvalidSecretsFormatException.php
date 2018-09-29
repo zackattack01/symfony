@@ -7,12 +7,8 @@ namespace Symfony\Bundle\FrameworkBundle\Secrets\Exception;
  */
 final class InvalidSecretsFormatException extends \RuntimeException
 {
-    public function __construct(string $secretsPath, int $code = 0, \Exception $previous = null)
+    public function __construct(string $msg, int $code = 0, \Exception $previous = null)
     {
-        parent::__construct(
-            sprintf('%s does not contain valid json for secrets. Verify the format, password, and initialization vector being used.', $secretsPath),
-            $code,
-            $previous
-        );
+        parent::__construct($msg, $code, $previous);
     }
 }

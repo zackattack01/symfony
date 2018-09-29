@@ -391,6 +391,7 @@ class Container implements ResettableContainerInterface
             $prefix = 'string';
             $localName = $name;
         }
+
         $processor = $processors->has($prefix) ? $processors->get($prefix) : new EnvVarProcessor($this);
 
         $this->resolving[$envName] = true;

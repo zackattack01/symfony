@@ -73,14 +73,12 @@
         <service id="services_resetter" class="Symfony\Component\HttpKernel\DependencyInjection\ServicesResetter" public="true" />
 
         <service id="secrets_writer" class="Symfony\Bundle\FrameworkBundle\Secrets\SecretsWriter">
-            <argument>%kernel.project_dir%</argument>
-            <argument>%kernel.environment%</argument>
+            <argument type="service" id="service_container" />
         </service>
 
-        <service id="secrets_broker" class="Symfony\Bundle\FrameworkBundle\Secrets\SecretsBroker" public="true">
-            <argument>%kernel.project_dir%</argument>
-            <argument>%kernel.environment%</argument>
-            <!-- TODO add flag to check cached secrets arg based on config -->
+        <service id="secret_var_processor" class="Symfony\Component\DependencyInjection\SecretVarProcessor">
+            <argument type="service" id="service_container" />
+            <tag name="container.env_var_processor" priority="-991" />
         </service>
     </services>
 </container>

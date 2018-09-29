@@ -37,6 +37,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\EnvVarProcessorInterface;
+use Symfony\Component\DependencyInjection\SecretVarProcessor;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
@@ -164,6 +165,18 @@ class FrameworkExtension extends Extension
 
         if (isset($config['secret'])) {
             $container->setParameter('kernel.secret', $config['secret']);
+        }
+
+        if (isset($config['encrypted_secrets']) && isset($config['encrypted_secrets']['secrets_file'])) {
+            $container->setParameter(
+                'encrypted_secrets.secrets_file',
+                $config['encrypted_secrets']['secrets_file']
+            );
+
+            $container->setParameter(
+                'encrypted_secrets.master_key_file',
+                $config['encrypted_secrets']['master_key_file']
+            );
         }
 
         $container->setParameter('kernel.http_method_override', $config['http_method_override']);

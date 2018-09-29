@@ -133,11 +133,6 @@
             <tag name="console.command" command="debug:form" />
         </service>
 
-        <service id="console.command.secrets_encrypt" class="Symfony\Bundle\FrameworkBundle\Command\SecretsEncryptCommand">
-            <argument type="service" id="secrets_writer" />
-            <tag name="console.command" command="secrets:encrypt" />
-        </service>
-
         <service id="console.command.secrets_decrypt" class="Symfony\Bundle\FrameworkBundle\Command\SecretsDecryptCommand">
             <argument type="service" id="secrets_writer" />
             <tag name="console.command" command="secrets:decrypt" />
@@ -146,6 +141,11 @@
         <service id="console.command.secrets_add" class="Symfony\Bundle\FrameworkBundle\Command\SecretsAddCommand">
             <argument type="service" id="secrets_writer" />
             <tag name="console.command" command="secrets:add" />
+        </service>
+
+        <service id="console.command.secrets_edit" class="Symfony\Bundle\FrameworkBundle\Command\SecretsEditCommand">
+            <argument type="service" id="secrets_writer" />
+            <tag name="console.command" command="secrets:edit" />
         </service>
     </services>
 </container>

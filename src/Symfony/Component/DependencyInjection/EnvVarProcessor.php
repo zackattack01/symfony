@@ -21,6 +21,7 @@ use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 class EnvVarProcessor implements EnvVarProcessorInterface
 {
     private $container;
+    private $secretVarProcessor;
 
     public function __construct(ContainerInterface $container)
     {
@@ -173,14 +174,6 @@ class EnvVarProcessor implements EnvVarProcessorInterface
 
         if ('csv' === $prefix) {
             return str_getcsv($env);
-        }
-
-        if ('secret' === $prefix) {
-            //TODO: decide on fallback and environment logic here. note: in a dev environment,
-            // env will already be populated correctly if we want to have people keep using dotenv
-            // for dev and no-op here
-            $env = $this->container->get('secrets_broker')->fetchSecret($name);
-            return $env;
         }
 
         throw new RuntimeException(sprintf('Unsupported env var prefix "%s".', $prefix));

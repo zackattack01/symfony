@@ -6,10 +6,10 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\HttpKernel\KernelInterface;
-use Symfony\Bundle\FrameworkBundle\Command\SecretsEncryptCommand;
+use Symfony\Bundle\FrameworkBundle\Command\SecretsEditCommand;
 use Symfony\Bundle\FrameworkBundle\Secrets\SecretsWriter;
 
-class SecretsEncryptCommandTest extends TestCase
+class SecretsEditCommandTest extends TestCase
 {
     const EXPECTED_MASTER_KEY = 'm@st3rP@zw0rd';
 
