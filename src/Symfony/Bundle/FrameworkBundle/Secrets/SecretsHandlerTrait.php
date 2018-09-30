@@ -7,7 +7,7 @@ use Symfony\Bundle\FrameworkBundle\Secrets\Exception\InvalidSecretsFormatExcepti
 
 trait SecretsHandlerTrait
 {
-    protected function readEncryptedSecrets(string $secretsLocation, $allowEmptySecrets = false)
+    protected function validateEncryptedSecrets(string $secretsLocation)
     {
         if (!file_exists($secretsLocation)) {
             throw new SecretsMissingException($secretsLocation);
@@ -15,11 +15,7 @@ trait SecretsHandlerTrait
 
         $secrets = json_decode(file_get_contents($secretsLocation), true);
         if (is_null($secrets)) {
-            if ($allowEmptySecrets) {
-                $secrets = [];
-            } else {
-                throw new InvalidSecretsFormatException($secretsLocation." does not contain valid json.");
-            }
+            throw new InvalidSecretsFormatException($secretsLocation." does not contain valid json.");
         } else {
             foreach ($secrets as $secretKey => $secretValues) {
                 if (!array_key_exists(SecretsWriter::CIPHERTEXT_KEY, $secretValues)) {
@@ -35,18 +31,11 @@ trait SecretsHandlerTrait
         return $secrets;
     }
 
-    protected function readMasterKey(string $fileLocation)
-    {
-        if (file_exists($fileLocation)) {
-            return trim(file_get_contents($fileLocation));
-        } else {
-            throw new RuntimeException(sprintf('No master key file found at "%s".', $fileLocation));
-        }
-    }
+
 
     protected function fetchSingleSecret(string $secretsLocation, string $secretKey)
     {
-        return json_decode(file_get_contents($secretsLocation), true)[$secretKey];
+        return json_decode(file_get_contents($secretsLocation), true)['secrets'][$secretKey];
     }
 
     protected function decryptSecretValue(string $secretValue, string $masterKey, string $iv)

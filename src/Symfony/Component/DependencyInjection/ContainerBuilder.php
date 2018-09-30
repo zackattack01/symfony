@@ -996,7 +996,6 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
     public function getDefinition($id)
     {
         $id = (string) $id;
-
         if (!isset($this->definitions[$id])) {
             throw new ServiceNotFoundException($id);
         }

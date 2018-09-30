@@ -74,11 +74,7 @@
 
         <service id="secrets_writer" class="Symfony\Bundle\FrameworkBundle\Secrets\SecretsWriter">
             <argument type="service" id="service_container" />
-        </service>
-
-        <service id="secret_var_processor" class="Symfony\Component\DependencyInjection\SecretVarProcessor">
-            <argument type="service" id="service_container" />
-            <tag name="container.env_var_processor" priority="-991" />
+            <argument type="service" id="filesystem" />
         </service>
     </services>
 </container>

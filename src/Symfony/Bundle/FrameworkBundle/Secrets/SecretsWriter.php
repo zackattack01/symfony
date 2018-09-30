@@ -2,6 +2,9 @@
 
 namespace Symfony\Bundle\FrameworkBundle\Secrets;
 
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Filesystem\Filesystem;
+
 class SecretsWriter
 {
     use SecretsHandlerTrait;
@@ -14,10 +17,13 @@ class SecretsWriter
 
     private $container;
 
-    public function __construct(ContainerInterface $container)
+    private $filesystem;
+
+    public function __construct(ContainerInterface $container, Filesystem $filesystem = null)
     {
         //TODO: add support for defaulting to values configured in framework.yaml
         $this->container = $container;
+        $this->filesystem = $filesystem ?: new Filesystem();
     }
 
     public function writeEncryptedSecrets(string $masterKey, string $plaintextLocation, string $encryptedLocation)
@@ -31,16 +37,16 @@ class SecretsWriter
     {
         $decryptedSecrets = $this->generatePlaintextSecrets($masterKey, $encryptedSecretsLocation);
         $formattedSecrets = json_encode($decryptedSecrets, JSON_PRETTY_PRINT, JSON_UNESCAPED_SLASHES);
-        $tmpfname = tempnam("/tmp", "");
+        $tmpfname = tempnam(sys_get_temp_dir(), "");
         $handle = fopen($tmpfname, "w");
         fwrite($handle, $formattedSecrets);
         fclose($handle);
         return $tmpfname;
     }
 
-    public function writeSingleSecret(string $secretName, string $secretValue, string $masterKey)
+    public function writeSingleSecret(string $secretName, string $secretValue, string $masterKey, string $encryptedSecretsLocation)
     {
-        $encryptedSecrets = $this->readSecrets($this->encryptedSecretsLocation, $allowEmptySecrets = true);
+        $encryptedSecrets = $this->readEncryptedSecrets($encryptedSecretsLocation, $allowEmptySecrets = true);
         $this->addSingleSecret($secretName, $secretValue, $masterKey, $encryptedSecrets);
         $formattedSecrets = json_encode($encryptedSecrets, JSON_PRETTY_PRINT, JSON_UNESCAPED_SLASHES);
         return file_put_contents($this->encryptedSecretsLocation, $formattedSecrets) > 0;

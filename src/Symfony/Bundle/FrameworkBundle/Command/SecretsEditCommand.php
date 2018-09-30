@@ -6,7 +6,6 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\Output;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Console\Exception\RuntimeException;
@@ -30,6 +29,9 @@ class SecretsEditCommand extends Command
     private $io;
     private $secretsWriter;
 
+    /**
+     * @param SecretsWriter $secretsWriter
+     */
     public function __construct(SecretsWriter $secretsWriter)
     {
         $this->secretsWriter = $secretsWriter;
@@ -48,13 +50,11 @@ class SecretsEditCommand extends Command
             ->setHelp(<<<'HELP'
 The <info>%command.name%</info> opens an editor session with decrypted secrets and re-encrypts file to the provided location.
 
-  <info>php %command.full_name%</info>
+  <info>php %command.full_name% [master-key] </info>
 
-To decrypt this file based on the encrypted file generated here,
-add <info>php bin/console secrets:decrypt [master-key]</info> to your deploy process.
+Run <info>php bin/console secrets:decrypt [master-key]</info> to decrypt this file based on the encrypted file generated here.
 
 Always store your master key in a secure location; you will not be able to recover your secrets without them.
-
 HELP
             )
             ->addArgument('master-key', InputArgument::OPTIONAL, 'The master key to be used for encryption.')
@@ -100,11 +100,8 @@ HELP
         $this->secretsWriter->writeEncryptedSecrets($masterKey, $tempDecryptedSecrets, $encryptedSecretsLocation);
 
         unlink($tempDecryptedSecrets);
-        // require_once('/usr/local/bin/psysh'); eval(\Psy\sh());
 
         $this->io->success('Secrets have been successfully encrypted. Be sure to securely store the master key used.');
     }
-
-    //php bin/console secrets:edit masterpass -s ./config/secrets.enc.json --editor vim
 }
 

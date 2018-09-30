@@ -11,32 +11,24 @@
 
 namespace Symfony\Component\DependencyInjection;
 
-use Symfony\Bundle\FrameworkBundle\Secrets\SecretsHandlerTrait;
+use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 
 class SecretVarProcessor implements EnvVarProcessorInterface
 {
-    use SecretsHandlerTrait;
+    const CIPHERTEXT_KEY = "ciphertext";
 
-    const SUPPORTS_ENCRYPTED_SECRETS = 'encrypted_secrets.enabled';
-    const SECRETS_FILE_PARAMETER = 'encrypted_secrets.secrets_file';
-    const MASTER_KEY_PARAMETER = 'encrypted_secrets.master_key_file';
-    
-    private $container;
+    const IV_KEY = "iv";
 
-    private $encryptedFileLocation;
+    const ENCRYPTION_METHOD = "aes-256-cbc";
 
     private $masterKeyFileLocation;
 
-    public function __construct(ContainerInterface $container)
-    {
-        $this->container = $container;
-        if ($this->container->hasParameter(self::SECRETS_FILE_PARAMETER)) {
-            $this->encryptedFileLocation = $this->container->getParameter(self::SECRETS_FILE_PARAMETER);
-        }
+    private $encryptedSecrets;
 
-        if ($this->container->hasParameter(self::MASTER_KEY_PARAMETER)) {
-            $this->masterKeyFileLocation = $this->container->getParameter(self::MASTER_KEY_PARAMETER);
-        }
+    public function __construct(array $encryptedSecrets, $masterKeyFileLocation)
+    {
+        $this->masterKeyFileLocation = $masterKeyFileLocation;
+        $this->encryptedSecrets = $encryptedSecrets;
     }
 
     /**
@@ -55,24 +47,27 @@ class SecretVarProcessor implements EnvVarProcessorInterface
     public function getEnv($prefix, $name, \Closure $getEnv)
     {
         if ('secret' === $prefix) {
-            if (is_null($this->masterKeyFileLocation)) {
-                throw new RuntimeException(sprintf('"%s" value must be set in framework.yaml to use the secret: ENV prefix', self::MASTER_KEY_PARAMETER));
-            }
-
-            if (is_null($this->encryptedFileLocation)) {
-                throw new RuntimeException(sprintf('"%s" value must be set in framework.yaml to use the secret: ENV prefix', self::SECRETS_FILE_PARAMETER));
-            }
-
             $masterKey = $this->readMasterkey($this->masterKeyFileLocation);
-            $encryptedSecret = $this->fetchSingleSecret($this->encryptedFileLocation, $name);
-            $secret = $encryptedSecret["ciphertext"];
-            $iv = $encryptedSecret["iv"];
+
+            $secret = $this->encryptedSecrets[$name]['ciphertext'];
+            $iv = $this->encryptedSecrets[$name]['iv'];
             return $this->decryptSecretValue($secret, $masterKey, $iv);
-            
         }
 
         throw new RuntimeException(sprintf('Unsupported env var prefix "%s".', $prefix));
     }
 
+    private function readMasterKey(string $fileLocation)
+    {
+        if (file_exists($fileLocation)) {
+            return trim(file_get_contents($fileLocation));
+        } else {
+            throw new RuntimeException(sprintf('No master key file found at "%s".', $fileLocation));
+        }
+    }
 
+    protected function decryptSecretValue(string $secretValue, string $masterKey, string $iv)
+    {
+        return openssl_decrypt($secretValue, self::ENCRYPTION_METHOD, $masterKey, $options = null, $iv);
+    }
 }

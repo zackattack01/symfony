@@ -37,14 +37,15 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\EnvVarProcessorInterface;
-use Symfony\Component\DependencyInjection\SecretVarProcessor;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
+use Symfony\Component\DependencyInjection\Loader\EncryptedJsonFileLoader;
 use Symfony\Component\DependencyInjection\Parameter;
 use Symfony\Component\DependencyInjection\ParameterBag\ContainerBagInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\DependencyInjection\SecretVarProcessor;
 use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\DependencyInjection\ServiceSubscriberInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -167,16 +168,8 @@ class FrameworkExtension extends Extension
             $container->setParameter('kernel.secret', $config['secret']);
         }
 
-        if (isset($config['encrypted_secrets']) && isset($config['encrypted_secrets']['secrets_file'])) {
-            $container->setParameter(
-                'encrypted_secrets.secrets_file',
-                $config['encrypted_secrets']['secrets_file']
-            );
-
-            $container->setParameter(
-                'encrypted_secrets.master_key_file',
-                $config['encrypted_secrets']['master_key_file']
-            );
+        if ($this->isConfigEnabled($container, $config['encrypted_secrets'])) {
+            $this->registerEncryptedSecretsConfiguration($config, $container);
         }
 
         $container->setParameter('kernel.http_method_override', $config['http_method_override']);
@@ -780,6 +773,19 @@ class FrameworkExtension extends Extension
                 ->replaceArgument(0, $config['formats'])
             ;
         }
+    }
+
+    private function registerEncryptedSecretsConfiguration(array $config, ContainerBuilder $container)
+    {
+        $secretsFile = $config['encrypted_secrets']['secrets_file'];
+        $loader = new EncryptedJsonFileLoader($container, new FileLocator(dirname($secretsFile)));
+        $secrets = $loader->load($secretsFile);
+
+        //TODO validate presence of master key file
+        $container->register('secret_var_processor', SecretVarProcessor::class)
+            ->addArgument($secrets)
+            ->addArgument($config['encrypted_secrets']['master_key_file'])
+            ->addTag('container.env_var_processor');
     }
 
     private function registerTemplatingConfiguration(array $config, ContainerBuilder $container, XmlFileLoader $loader)
