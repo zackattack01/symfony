@@ -36,11 +36,11 @@ use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\EncryptedSecretsConfigLoader;
 use Symfony\Component\DependencyInjection\EnvVarProcessorInterface;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
-use Symfony\Component\DependencyInjection\Loader\EncryptedJsonFileLoader;
 use Symfony\Component\DependencyInjection\Parameter;
 use Symfony\Component\DependencyInjection\ParameterBag\ContainerBagInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -777,14 +777,16 @@ class FrameworkExtension extends Extension
 
     private function registerEncryptedSecretsConfiguration(array $config, ContainerBuilder $container)
     {
+        //TODO make SecretVarProcessor take configs as constructor and remove isConfigured logic
         $secretsFile = $config['encrypted_secrets']['secrets_file'];
-        $loader = new EncryptedJsonFileLoader($container, new FileLocator(dirname($secretsFile)));
-        $secrets = $loader->load($secretsFile);
+        $masterKeyFile = $config['encrypted_secrets']['master_key_file'];
+        // make sure the configuration is valid before runtime, but set up when accessed
+        $secretVarProcessor = new SecretVarProcessor();
+        $secretVarProcessor->configureEncryptedSecrets($masterKeyFile, $secretsFile);
 
-        //TODO validate presence of master key file
-        $container->register('secret_var_processor', SecretVarProcessor::class)
-            ->addArgument($secrets)
-            ->addArgument($config['encrypted_secrets']['master_key_file'])
+        $container->fileExists($secretsFile);
+        $container->getDefinition('secret_var_processor')
+            ->addMethodCall('configureEncryptedSecrets', [$masterKeyFile, $secretsFile])
             ->addTag('container.env_var_processor');
     }
 

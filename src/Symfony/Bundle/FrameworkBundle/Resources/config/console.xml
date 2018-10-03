@@ -144,7 +144,7 @@
         </service>
 
         <service id="console.command.secrets_edit" class="Symfony\Bundle\FrameworkBundle\Command\SecretsEditCommand">
-            <argument type="service" id="secrets_writer" />
+            <argument type="service" id="secret_var_processor" />
             <tag name="console.command" command="secrets:edit" />
         </service>
     </services>
