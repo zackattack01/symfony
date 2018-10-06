@@ -786,6 +786,7 @@ class FrameworkExtension extends Extension
 
         $container->fileExists($secretsFile);
         $container->getDefinition('secret_var_processor')
+            ->addMethodCall('enableSecretsLookup')
             ->addMethodCall('configureEncryptedSecrets', [$masterKeyFile, $secretsFile])
             ->addTag('container.env_var_processor');
     }

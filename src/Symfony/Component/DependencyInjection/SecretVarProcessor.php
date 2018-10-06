@@ -13,20 +13,15 @@ namespace Symfony\Component\DependencyInjection;
 
 use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
+use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 
 class SecretVarProcessor implements EnvVarProcessorInterface
 {
-    const CIPHERTEXT_KEY = 'ciphertext';
-
-    const IV_KEY = 'iv';
-
-    const ENCRYPTION_METHOD = 'aes-256-cbc';
-
     private $masterKeyLocation;
 
     private $encryptedSecrets = [];
 
-    private $configuration = [];
+    private $secretsLookupEnabled = false;
 
     /**
      * {@inheritdoc}
@@ -56,7 +51,7 @@ class SecretVarProcessor implements EnvVarProcessorInterface
     public function getEnv($prefix, $name, \Closure $getEnv)
     {
         if ('secret' === $prefix) {
-            if (!empty($this->getConfiguration())) {
+            if ($this->secretsLookupEnabled) {
                 if (isset($this->encryptedSecrets[$name])) {
                     return $this->decryptSecretValue($this->encryptedSecrets[$name]);
                 } else {
@@ -66,19 +61,19 @@ class SecretVarProcessor implements EnvVarProcessorInterface
                     ));
                 }
             } else {
-                throw new RuntimeException(sprintf(
-                    '"%s" must be configured through configureEncryptedSecrets before use',
-                    get_class($this)
-                ));
+                // if the config is not enabled for the current environment, drop the secret prefix and
+                // defer processing. this is done to allow users to opt into encrypted_secrets per
+                // environment without needing to override each config parameter with the secret prefix.
+                return $getEnv($name);
             }
         }
 
         throw new RuntimeException(sprintf('Unsupported env var prefix "%s".', $prefix));
     }
 
-    public function getConfiguration()
+    public function enableSecretsLookup()
     {
-        return $this->configuration;
+        return $this->secretsLookupEnabled = true;
     }
 
     /**
