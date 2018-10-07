@@ -3,9 +3,11 @@
 namespace Symfony\Component\DependencyInjection\Secrets;
 
 
-class JweEntry
+use Symfony\Component\DependencyInjection\Exception\RuntimeException;
+
+final class JweEntry
 {
-    //TODO do we need header?
+    //TODO do we need to store header and auth tag separately?
     private $header;
     private $encryptedKey;
     private $iv;
@@ -55,10 +57,12 @@ class JweEntry
                 $plaintextCek
             );
             if ($decrypted === false) {
-                throw new Exception("Bad ciphertext");
+                throw new RuntimeException(sprintf(
+                    "Unable to decrypt secrets. Verify the configured key pair"
+                ));
             }
         } else {
-            //TODO
+            //TODO add alt decryption method
             $decrypted = "";
         }
 
@@ -102,7 +106,7 @@ class JweEntry
             //TODO: add alternative encryption method
         }
 
-        //TODO: not sure if this conversion is needed
+        //TODO: figure out if this conversion is needed
         //mb_convert_encoding($additionalData, "ASCII");
         $this->authTag = $additionalData;
         $this->cipherText = $ciphertext;

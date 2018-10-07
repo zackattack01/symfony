@@ -72,11 +72,8 @@
 
         <service id="services_resetter" class="Symfony\Component\HttpKernel\DependencyInjection\ServicesResetter" public="true" />
 
-        <service id="secrets_writer" class="Symfony\Bundle\FrameworkBundle\Secrets\SecretsWriter">
-            <argument type="service" id="service_container" />
-            <argument type="service" id="filesystem" />
+        <service id="secret_var_processor" class="Symfony\Component\DependencyInjection\SecretVarProcessor" >
+            <tag name="container.env_var_processor" priority="-992" />
         </service>
-
-        <service id="secret_var_processor" class="Symfony\Component\DependencyInjection\SecretVarProcessor" />
     </services>
 </container>

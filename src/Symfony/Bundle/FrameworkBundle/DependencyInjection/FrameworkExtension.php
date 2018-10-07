@@ -36,7 +36,6 @@ use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
-use Symfony\Component\DependencyInjection\EncryptedSecretsConfigLoader;
 use Symfony\Component\DependencyInjection\EnvVarProcessorInterface;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
@@ -45,7 +44,7 @@ use Symfony\Component\DependencyInjection\Parameter;
 use Symfony\Component\DependencyInjection\ParameterBag\ContainerBagInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\DependencyInjection\Reference;
-use Symfony\Component\DependencyInjection\SecretVarProcessor;
+use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\DependencyInjection\ServiceSubscriberInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -777,18 +776,15 @@ class FrameworkExtension extends Extension
 
     private function registerEncryptedSecretsConfiguration(array $config, ContainerBuilder $container)
     {
-        //TODO make SecretVarProcessor take configs as constructor and remove isConfigured logic
         $secretsFile = $config['encrypted_secrets']['secrets_file'];
-        $masterKeyFile = $config['encrypted_secrets']['master_key_file'];
-        // make sure the configuration is valid before runtime, but set up when accessed
-        $secretVarProcessor = new SecretVarProcessor();
-        $secretVarProcessor->configureEncryptedSecrets($masterKeyFile, $secretsFile);
+        $publicKeyFile = $config['encrypted_secrets']['public_key_file'];
+        $privateKeyFile = $config['encrypted_secrets']['private_key_file'];
+        $secretsHandler = new JweHandler($secretsFile, $publicKeyFile, $privateKeyFile);
+        //TODO: this will only validate presence/size of files, make sure the configuration can decrypt values before runtime
 
         $container->fileExists($secretsFile);
         $container->getDefinition('secret_var_processor')
-            ->addMethodCall('enableSecretsLookup')
-            ->addMethodCall('configureEncryptedSecrets', [$masterKeyFile, $secretsFile])
-            ->addTag('container.env_var_processor');
+            ->addMethodCall('enableSecretsLookup', [$secretsFile, $publicKeyFile, $privateKeyFile]);
     }
 
     private function registerTemplatingConfiguration(array $config, ContainerBuilder $container, XmlFileLoader $loader)

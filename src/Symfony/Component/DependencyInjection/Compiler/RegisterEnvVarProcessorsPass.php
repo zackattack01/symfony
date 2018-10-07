@@ -34,7 +34,6 @@ class RegisterEnvVarProcessorsPass implements CompilerPassInterface
         $bag = $container->getParameterBag();
         $types = array();
         $processors = array();
-
         foreach ($container->findTaggedServiceIds('container.env_var_processor') as $id => $tags) {
             if (!$r = $container->getReflectionClass($class = $container->getDefinition($id)->getClass())) {
                 throw new InvalidArgumentException(sprintf('Class "%s" used for service "%s" cannot be found.', $class, $id));
