@@ -142,5 +142,10 @@
             <argument type="service" id="secret_var_processor" />
             <tag name="console.command" command="secrets:edit" />
         </service>
+
+        <service id="console.command.secrets_update_keypair" class="Symfony\Bundle\FrameworkBundle\Command\SecretsUpdateKeyPairCommand">
+            <argument type="service" id="secret_var_processor" />
+            <tag name="console.command" command="secrets:update-keypair" />
+        </service>
     </services>
 </container>

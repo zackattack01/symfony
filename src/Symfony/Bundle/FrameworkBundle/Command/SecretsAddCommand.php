@@ -50,7 +50,7 @@ you can provide the required information via the public-key-file and secrets-fil
 
 If this is the first time you've run <info>%command.name%</info> and no secrets-file exists in the specified location, one will be created for you.
 
-Always store the companion private key in a secure location; you will not be able to recover your secrets without them.
+Always store your private key in a secure location outside of version control; you will not be able to recover your secrets without it.
 HELP
             )
             ->addArgument('secret-name', InputArgument::REQUIRED, 'The variable name of the secret (e.g., DATABASE_URL).')

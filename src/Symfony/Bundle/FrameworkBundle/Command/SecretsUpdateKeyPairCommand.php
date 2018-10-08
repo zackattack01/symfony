@@ -12,20 +12,12 @@ use Symfony\Component\DependencyInjection\SecretVarProcessor;
 use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 
 /**
- * Console command to temporarily decrypt and allow editing of encrypted secrets file
- * Usage: php bin/console secrets:edit
+ * Console command to update your encrypted_secrets public/private key pair
+ * Usage: php bin/console secrets:update-keypair
  */
-class SecretsEditCommand extends Command
+class SecretsUpdateKeyPairCommand extends Command
 {
-    const DEFAULT_EDITOR = 'vi';
-    const SUPPORTED_EDITORS = [
-        'nano',
-        'emacs',
-        'vi',
-        'vim'
-    ];
-
-    protected static $defaultName = 'secrets:edit';
+    protected static $defaultName = 'secrets:update-keypair';
     private $io;
     private $secretsProcessor;
 
@@ -43,23 +35,24 @@ class SecretsEditCommand extends Command
      */
     protected function configure()
     {
-        $supportedEditorsLine = implode(", ", array_slice(self::SUPPORTED_EDITORS, 0, -1));
-        $supportedEditorsLine .= ", and ".array_values(array_slice(self::SUPPORTED_EDITORS, -1))[0];
         $this
-            ->setDescription('Opens an editor session with decrypted secrets and re-encrypts file to the provided location')
+            ->setDescription('Update or create your encrypted_secrets public/private key pair')
             ->setHelp(<<<'HELP'
-The <info>%command.name%</info> opens an editor session with decrypted secrets and re-encrypts the file to the provided location.
-
+The <info>%command.name%</info> updates your encrypted_secrets public/private key pair, or creates one if it does not already exist.
 If encrypted_secrets.enabled is set to true in your yaml config,
 
   <info>php %command.full_name%</info>
   
-will temporarily decrypt the values from the json secrets file set by encrypted_secrets.secrets_file, using the public and private key pair specified by
-encrypted_secrets.public_key_file and encrypted_secrets.private_key_file. After you've finished editing, the values will be re-encrypted.
+will temporarily decrypt the values from the json secrets file set by encrypted_secrets.secrets_file using the public and private key pair specified by
+encrypted_secrets.public_key_file and encrypted_secrets.private_key_file. It will then generate a new key pair, re-encrypt your secrets, and update the public and private key files.
 If you haven't configured encrypted_secrets or wish to override these values, you can provide the required information via the public-key-file,
 private-key-file, and secrets-file options:
 
   <info>php %command.full_name% --secrets-file ./config/secrets.jwe --public-key-file ./config/secrets.pub --private-key-file /etc/app-name/secret-key</info>
+
+If this is your first time using encrypted secrets, the specified files will be created for you. After running this command, use
+
+  <info>php bin/console secrets:add</info> or <info>php bin/console secrets:edit</info> to start adding your new secrets.
   
 Always store your private key in a secure location outside of version control; you will not be able to recover your secrets without it.
 HELP
@@ -67,12 +60,6 @@ HELP
             ->addOption('secrets-file', 's', InputOption::VALUE_REQUIRED, 'The file to edit encrypted secrets from')
             ->addOption('public-key-file', 'p', InputOption::VALUE_REQUIRED, 'The 32 byte public key file to be used for encryption.')
             ->addOption('private-key-file', 'x', InputOption::VALUE_REQUIRED, 'The 32 byte private key file to be used for decryption.')
-            ->addOption(
-                'editor',
-                null,
-                InputOption::VALUE_REQUIRED,
-                "Preferred text editor. Supported editors include $supportedEditorsLine. Defaults to ".self::DEFAULT_EDITOR
-            );
         ;
     }
 
@@ -89,7 +76,6 @@ HELP
         $secretsLocation = $input->getOption('secrets-file');
         $pubKeyLocation = $input->getOption('public-key-file');
         $privateKeyLocation = $input->getOption('private-key-file');
-        $editor = $input->getOption('editor') ?? self::DEFAULT_EDITOR;
 
         if (isset($secretsLocation) && !file_exists($secretsLocation)) {
             JweHandler::initSecretsFile($secretsLocation);
@@ -116,9 +102,9 @@ HELP
 
         $tempFileName = tempnam(sys_get_temp_dir(), "");
         try {
-            $secretsHandler->writePlaintext($tempFileName);
-            system("$editor $tempFileName > `tty`");
-            $secretsHandler->regenerateEncryptedEntries($tempFileName)
+            $secretsHandler->writePlaintext($tempFileName)
+                           ->updateKeyPair()
+                           ->regenerateEncryptedEntries($tempFileName)
                            ->writeEncrypted();
         } finally {
             unlink($tempFileName);
