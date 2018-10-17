@@ -29,7 +29,7 @@ final class JweEntry
     }
 
     // see the JWE compact serialization format for details https://tools.ietf.org/html/rfc7516#section-7.1
-    protected function compact()
+    private function compact()
     {
         $valuesForCompaction = array(
             $this->base64url_encode($this->header),
@@ -42,7 +42,7 @@ final class JweEntry
         return implode(".", $valuesForCompaction);
     }
 
-    protected function decryptedSecret(string $keyPair)
+    private function decryptedSecret(string $keyPair)
     {
         $plaintextCek = sodium_crypto_box_seal_open(
             $this->encryptedKey,
@@ -69,7 +69,7 @@ final class JweEntry
         return $decrypted;
     }
 
-    protected function hydrate(string $compactedEntry)
+    private function hydrate(string $compactedEntry)
     {
         //TODO add validations
         list($header, $encryptedKey, $iv, $cipherText, $authTag) = explode(".", $compactedEntry);
