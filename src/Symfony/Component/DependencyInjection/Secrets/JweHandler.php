@@ -18,8 +18,6 @@ final class JweHandler
     private $secrets;
 
     /**
-     * @param string $fileLocation
-     *
      * @throws InvalidArgumentException if the fileLocation does not exist in a writable directory
      */
     public static function initSecretsFile(string $fileLocation)
@@ -36,8 +34,6 @@ final class JweHandler
 
     /**
      * JweHandler constructor.
-     * @param string $secretsLocation
-     * @param string $publicKeyLocation
      * @param string|null $privateKeyLocation
      */
     public function __construct(string $secretsLocation, string $publicKeyLocation, string $privateKeyLocation = null)
@@ -58,8 +54,6 @@ final class JweHandler
     }
 
     /**
-     * @param string $secretsLocation
-     *
      * @throws InvalidArgumentException if the secretsLocation does not point to a readable secrets file with valid json
      */
     public function setSecretsFromLocation(string $secretsLocation): void
@@ -85,8 +79,6 @@ final class JweHandler
 
     /**
      * sets publicKeyLocation and caches publicKey if publicKeyLocation is a readable, 32 byte key file
-     * @param string $publicKeyLocation
-     *
      * @throws InvalidArgumentException if the publicKeyLocation does not point to a readable, 32 byte key file
      */
     public function setPublicKeyInfo(string $publicKeyLocation): void
@@ -105,8 +97,6 @@ final class JweHandler
 
     /**
      * sets privateKeyLocation
-     * @param string $privateKeyLocation
-     *
      * @throws InvalidArgumentException if the privateKeyLocation does not point to a readable, 32 byte key file
      */
     public function setPrivateKeyLocation(string $privateKeyLocation): void
@@ -123,8 +113,6 @@ final class JweHandler
     }
 
     /**
-     * @param string $key
-     * @param string $secret
      * @return $this
      */
     public function addEntry(string $key, string $secret)
@@ -134,7 +122,6 @@ final class JweHandler
     }
 
     /**
-     * @param string $plaintextLocation
      * @return $this
      *
      * @throws InvalidArgumentException if the plaintext file does not contain valid secrets
@@ -168,7 +155,6 @@ final class JweHandler
 
     /**
      * Decrypts all populated secrets and writes the plaintext to the provided $fileLocation
-     * @param string $fileLocation
      * @return $this
      */
     public function writePlaintext(string $fileLocation)
@@ -183,7 +169,6 @@ final class JweHandler
     }
 
     /**
-     * @param string $key
      * @return string
      *
      * @throws RuntimeException if the privateKeyLocation is not configured, or a value does not exist for the required key
@@ -224,7 +209,6 @@ final class JweHandler
     }
 
     /**
-     * @param string $filePath
      * @return bool
      */
     private function isValidSecretsFile(string $filePath)
@@ -233,7 +217,6 @@ final class JweHandler
     }
 
     /**
-     * @param string $filePath
      * @return bool
      */
     private function isValidKeyLocation(string $filePath)
@@ -244,7 +227,6 @@ final class JweHandler
 
 
     /**
-     * @param string $secretsLocation
      * @return array
      *
      * @throws InvalidArgumentException if the $secretsLocation file does not contain valid json secrets

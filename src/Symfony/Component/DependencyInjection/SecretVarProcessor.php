@@ -18,6 +18,11 @@ final class SecretVarProcessor implements EnvVarProcessorInterface
 {
     private $secretsHandler;
 
+    public function __construct(JweHandler $secretsHandler = null)
+    {
+        $this->secretsHandler = $secretsHandler;
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -47,21 +52,8 @@ final class SecretVarProcessor implements EnvVarProcessorInterface
         throw new RuntimeException(sprintf('Unsupported env var prefix "%s".', $prefix));
     }
 
-    public function enableSecretsLookup(string $secretsLocation, string $publicKeyLocation, string $privateKeyLocation)
-    {
-        $this->secretsHandler = new JweHandler($secretsLocation, $publicKeyLocation, $privateKeyLocation);
-    }
-
     public function isSecretsLookupEnabled()
     {
         return isset($this->secretsHandler);
-    }
-
-    /**
-     * @return JweHandler
-     */
-    public function getSecretsHandler()
-    {
-        return $this->secretsHandler;
     }
 }

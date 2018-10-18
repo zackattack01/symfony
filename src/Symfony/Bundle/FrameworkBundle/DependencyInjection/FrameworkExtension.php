@@ -168,6 +168,7 @@ class FrameworkExtension extends Extension
         }
 
         if ($this->isConfigEnabled($container, $config['encrypted_secrets'])) {
+            $loader->load('secrets.xml');
             $this->registerEncryptedSecretsConfiguration($config, $container);
         }
 
@@ -779,12 +780,14 @@ class FrameworkExtension extends Extension
         $secretsFile = $config['encrypted_secrets']['secrets_file'];
         $publicKeyFile = $config['encrypted_secrets']['public_key_file'];
         $privateKeyFile = $config['encrypted_secrets']['private_key_file'];
-        $secretsHandler = new JweHandler($secretsFile, $publicKeyFile, $privateKeyFile);
-        //TODO: this will only validate presence/size of files, make sure the configuration can decrypt values before runtime
+        $container->getDefinition('jwe_handler')
+                  ->addArgument($secretsFile)
+                  ->addArgument($publicKeyFile)
+                  ->addArgument($privateKeyFile);
 
-        $container->fileExists($secretsFile);
+        $handler = new Reference('jwe_handler');
         $container->getDefinition('secret_var_processor')
-            ->addMethodCall('enableSecretsLookup', [$secretsFile, $publicKeyFile, $privateKeyFile]);
+                  ->addArgument($handler);
     }
 
     private function registerTemplatingConfiguration(array $config, ContainerBuilder $container, XmlFileLoader $loader)
