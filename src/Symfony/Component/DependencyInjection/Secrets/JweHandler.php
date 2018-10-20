@@ -7,6 +7,8 @@ use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 
 final class JweHandler
 {
+    const JSON_ENCODE_OPTIONS = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT;
+
     private $secretsLocation;
 
     private $publicKey;
@@ -17,99 +19,67 @@ final class JweHandler
 
     private $secrets;
 
-    /**
-     * @throws InvalidArgumentException if the fileLocation does not exist in a writable directory
-     */
-    public static function initSecretsFile(string $fileLocation)
-    {
-        if (is_writeable(pathinfo($fileLocation, PATHINFO_DIRNAME))) {
-            file_put_contents($fileLocation, json_encode([], JSON_FORCE_OBJECT));
-        } else {
-            throw new InvalidArgumentException(sprintf(
-                'fileLocation for secrets at %s must exist in a writable directory',
-                $fileLocation
-            ));
-        }
-    }
-
-    /**
-     * JweHandler constructor.
-     * @param string|null $privateKeyLocation
-     */
     public function __construct(string $secretsLocation, string $publicKeyLocation, string $privateKeyLocation = null)
     {
-        $this->setPublicKeyInfo($publicKeyLocation);
-        $this->setSecretsFromLocation($secretsLocation);
-        if (isset($privateKeyLocation)) {
-            $this->setPrivateKeyLocation($privateKeyLocation);
+        $this->secretsLocation = $secretsLocation;
+        $this->publicKeyLocation = $publicKeyLocation;
+        $this->privateKeyLocation = $privateKeyLocation;
+        if ($this->isValidSecretsFile($this->secretsLocation) && $secrets = $this->readSecrets($this->secretsLocation)) {
+            $this->secrets = $secrets;
         }
     }
 
     /**
-     * @return string
+     * @throws InvalidArgumentException if the secretsLocation does not point to a readable secrets file with valid json,
+     * or if the public and private key files do
      */
-    public function getSecretsLocation(): string
+    public function validateConfig(bool $decryptRequired = false)
     {
-        return $this->secretsLocation;
-    }
-
-    /**
-     * @throws InvalidArgumentException if the secretsLocation does not point to a readable secrets file with valid json
-     */
-    public function setSecretsFromLocation(string $secretsLocation): void
-    {
-        if ($this->isValidSecretsFile($secretsLocation)) {
-            $this->secrets = $this->readSecrets($secretsLocation);
-            $this->secretsLocation = $secretsLocation;
-        } else {
-            throw new InvalidArgumentException(sprintf(
+        if (!$this->isValidSecretsFile($this->secretsLocation)) {
+             throw new InvalidArgumentException(sprintf(
                 'secretsLocation %s must point to an existing, readable file',
-                $secretsLocation
+                $this->secretsLocation
             ));
         }
-    }
 
-    /**
-     * @return string
-     */
-    public function getPublicKey(): string
-    {
-        return $this->publicKey;
-    }
-
-    /**
-     * sets publicKeyLocation and caches publicKey if publicKeyLocation is a readable, 32 byte key file
-     * @throws InvalidArgumentException if the publicKeyLocation does not point to a readable, 32 byte key file
-     */
-    public function setPublicKeyInfo(string $publicKeyLocation): void
-    {
-        if ($this->isValidKeyLocation($publicKeyLocation)) {
-            $this->publicKey = trim(file_get_contents($publicKeyLocation));
-            $this->publicKeyLocation = $publicKeyLocation;
-        } else {
+        if (!$this->isValidKeyLocation($this->publicKeyLocation)) {
             throw new InvalidArgumentException(sprintf(
                 'publicKeyLocation %s must point to an existing %u byte file',
-                $publicKeyLocation,
+                $this->publicKeyLocation,
                 SODIUM_CRYPTO_BOX_SECRETKEYBYTES
             ));
+        }
+
+        if ($decryptRequired && !$this->isValidKeyLocation($this->privateKeyLocation)) {
+            throw new InvalidArgumentException(sprintf(
+                'privateKeyLocation %s must point to an existing %u byte file',
+                $this->privateKeyLocation,
+                SODIUM_CRYPTO_BOX_SECRETKEYBYTES
+            ));
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    private function getPublicKey()
+    {
+        if (isset($this->publicKey)) {
+            return $this->publicKey;
+        } else {
+            return $this->publicKey = $this->readKey($this->publicKeyLocation);
         }
     }
 
     /**
-     * sets privateKeyLocation
-     * @throws InvalidArgumentException if the privateKeyLocation does not point to a readable, 32 byte key file
+     * @return array
      */
-    public function setPrivateKeyLocation(string $privateKeyLocation): void
+    private function populateSecrets()
     {
-        if ($this->isValidKeyLocation($privateKeyLocation)) {
-            $this->privateKeyLocation = $privateKeyLocation;
-        } else {
-            throw new InvalidArgumentException(sprintf(
-                'privateKeyLocation %s must point to an existing %u byte file',
-                $privateKeyLocation,
-                SODIUM_CRYPTO_BOX_SECRETKEYBYTES
-            ));
-        }
+        $this->secrets = $this->readSecrets($this->secretsLocation);
+        return $this;
     }
 
     /**
@@ -117,7 +87,7 @@ final class JweHandler
      */
     public function addEntry(string $key, string $secret)
     {
-        $this->secrets[$key] = JweEntry::encrypt($secret, $this->publicKey);
+        $this->secrets[$key] = JweEntry::encrypt($secret, $this->getPublicKey());
         return $this;
     }
 
@@ -149,7 +119,7 @@ final class JweHandler
      */
     public function writeEncrypted()
     {
-        file_put_contents($this->secretsLocation, json_encode($this->secrets, JSON_PRETTY_PRINT));
+        $this->writeFile($this->secretsLocation, json_encode($this->secrets, self::JSON_ENCODE_OPTIONS));
         return $this;
     }
 
@@ -160,11 +130,12 @@ final class JweHandler
     public function writePlaintext(string $fileLocation)
     {
         $plaintextSecrets = [];
+        $this->populateSecrets();
         foreach (array_keys($this->secrets) as $key) {
             $plaintextSecrets[$key] = $this->decrypt($key);
         }
 
-        file_put_contents($fileLocation, json_encode($plaintextSecrets, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        $this->writeFile($fileLocation, json_encode($plaintextSecrets, self::JSON_ENCODE_OPTIONS));
         return $this;
     }
 
@@ -190,9 +161,60 @@ final class JweHandler
             ));
         }
 
-        $keyPair = $this->collectKeyPair();
+        return JweEntry::decrypt($this->secrets[$key], $this->collectKeyPair());
+    }
 
-        return JweEntry::decrypt($this->secrets[$key], $keyPair);
+    /**
+     * generates a new key pair, and writes it to the configured public and private key locations after re-encrypting secrets
+     *
+     * @throws InvalidArgumentException if the $publicKeyLocation or $privateKeyLocation cannot be written
+     */
+    public function updateKeyPair()
+    {
+        $tempSecretsLocation = tempnam(sys_get_temp_dir(), "");
+        try {
+            //TODO should probably add a temp backup and make this behave like a transaction
+            $this->writePlaintext($tempSecretsLocation)
+                 ->writeNewKeyPair()
+                 ->regenerateEncryptedEntries($tempSecretsLocation)
+                 ->writeEncrypted();
+        } finally {
+            unlink($tempSecretsLocation);
+        }
+    }
+
+    /**
+     * @throws InvalidArgumentException if the fileLocation does not exist in a writable directory or
+     * if the file already exists and $overwriteExisting is set to false
+     */
+    public function initSecretsFiles(bool $overwriteExisting)
+    {
+        if (!$overwriteExisting) {
+            if (file_exists($this->secretsLocation)) {
+                throw new InvalidArgumentException(sprintf(
+                    'secrets file at %s already exists',
+                    $this->secretsLocation
+                ));
+            }
+
+            if (file_exists($this->publicKeyLocation)) {
+                throw new InvalidArgumentException(sprintf(
+                    'public key file at %s already exists',
+                    $this->publicKeyLocation
+                ));
+            }
+
+            if (file_exists($this->privateKeyLocation)) {
+                throw new InvalidArgumentException(sprintf(
+                    'private key file at %s already exists',
+                    $this->privateKeyLocation
+                ));
+            }
+        }
+
+        $this->writeFile($this->secretsLocation, json_encode([], self::JSON_ENCODE_OPTIONS));
+        $this->writeNewKeyPair();
+        return $this;
     }
 
     /**
@@ -201,11 +223,15 @@ final class JweHandler
      */
     private function collectKeyPair()
     {
-        $secretKey = trim(file_get_contents($this->privateKeyLocation));
         return sodium_crypto_box_keypair_from_secretkey_and_publickey(
-            $secretKey,
-            $this->publicKey
+            $this->readKey($this->privateKeyLocation),
+            $this->readKey($this->publicKeyLocation)
         );
+    }
+
+    private function readKey(string $keyLocation)
+    {
+        return trim(file_get_contents($keyLocation));
     }
 
     /**
@@ -225,7 +251,6 @@ final class JweHandler
             (SODIUM_CRYPTO_BOX_SECRETKEYBYTES === filesize($filePath));
     }
 
-
     /**
      * @return array
      *
@@ -234,47 +259,30 @@ final class JweHandler
     private function readSecrets(string $secretsLocation)
     {
         $rawSecrets = trim(file_get_contents($secretsLocation));
-        $secrets = json_decode($rawSecrets, true);
-        if (false === $secrets) {
-            throw new InvalidArgumentException(sprintf(
-                'secretsLocation %s must point to a file with valid json secrets',
-                $secretsLocation
-            ));
-        }
 
-        return $secrets;
+        return json_decode($rawSecrets, true);
     }
 
-    /**
-     * generates a new key pair and writes it to the configured public and private key locations
-     * @return $this
-     *
-     * @throws InvalidArgumentException if the $publicKeyLocation or $privateKeyLocation cannot be written
-     */
-    public function updateKeyPair()
+    private function writeNewKeyPair()
     {
-        if (is_writeable(pathinfo($this->privateKeyLocation, PATHINFO_DIRNAME)) &&
-            is_writeable(pathinfo($this->publicKeyLocation, PATHINFO_DIRNAME))) {
-
-            $newKeyPair = sodium_crypto_box_keypair();
-            file_put_contents($this->publicKeyLocation, sodium_crypto_box_publickey($newKeyPair));
-            file_put_contents($this->privateKeyLocation, sodium_crypto_box_secretkey($newKeyPair));
-        } else {
-            throw new InvalidArgumentException(sprintf(
-                'File locations for public and private keys at %s and %s must exist in writable directories',
-                $this->publicKeyLocation,
-                $this->privateKeyLocation
-            ));
-        }
+        $newKeyPair = sodium_crypto_box_keypair();
+        $this->writeFile($this->privateKeyLocation, sodium_crypto_box_secretkey($newKeyPair));
+        $this->writeFile($this->publicKeyLocation, sodium_crypto_box_publickey($newKeyPair));
+        unset($this->publicKey);
 
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getPublicKeyLocation()
+    private function writeFile(string $fileLocation, string $content)
     {
-        return $this->publicKeyLocation;
+        $fileDir = pathinfo($fileLocation, PATHINFO_DIRNAME);
+        if (!is_dir($fileDir) || !is_writeable($fileLocation)) {
+            throw new InvalidArgumentException(sprintf(
+                'file location for secrets at %s must exist in a writable directory',
+                $fileLocation
+            ));
+        }
+
+        return file_put_contents($fileLocation, $content) > 0;
     }
 }

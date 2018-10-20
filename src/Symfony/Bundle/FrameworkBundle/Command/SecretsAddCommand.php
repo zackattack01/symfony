@@ -9,7 +9,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Console\Exception\RuntimeException;
-use Symfony\Component\DependencyInjection\SecretVarProcessor;
+use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 
 /**
  * Console command to add an encrypted secret
@@ -19,11 +19,11 @@ class SecretsAddCommand extends Command
 {
     protected static $defaultName = 'secrets:add';
     private $io;
-    private $secretsProcessor;
+    private $secretsHandler;
 
-    public function __construct(SecretVarProcessor $secretsProcessor)
+    public function __construct(JweHandler $secretsHandler)
     {
-        $this->secretsProcessor = $secretsProcessor;
+        $this->secretsHandler = $secretsHandler;
         parent::__construct();
     }
 
@@ -65,17 +65,11 @@ HELP
         $name = $input->getArgument('secret-name');
         $secretValue = $input->getArgument('secret-value');
 
-        if ($this->secretsProcessor->isSecretsLookupEnabled()) {
-            $secretsHandler = $this->secretsProcessor->getSecretsHandler();
-        } else {
-            //TODO: or run secrets:enable
-            throw new RuntimeException("Configure encrypted_secrets by setting encrypted_secrets.enabled to true and configuring encrypted_secrets.public_key_file and encrypted_secrets.secrets_file in your config");
-        }
+        $this->secretsHandler->validateConfig()
+                             ->addEntry($name, $secretValue)
+                             ->writeEncrypted();
 
-        $secretsHandler->addEntry($name, $secretValue)
-                       ->writeEncrypted();
-
-        //TODO add verification that key decrypts all existing values
+        //TODO- $this->secretsHandler->validateEncryptedSecrets();
         $this->io->success(sprintf(
             'Secret for %s has been successfully added.',
             $name

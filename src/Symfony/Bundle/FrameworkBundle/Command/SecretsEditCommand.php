@@ -8,7 +8,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Console\Exception\RuntimeException;
-use Symfony\Component\DependencyInjection\SecretVarProcessor;
+use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 
 /**
  * Console command to temporarily decrypt and allow editing of encrypted secrets file
@@ -26,14 +26,11 @@ class SecretsEditCommand extends Command
 
     protected static $defaultName = 'secrets:edit';
     private $io;
-    private $secretsProcessor;
+    private $secretsHandler;
 
-    /**
-     * @param SecretVarProcessor $secretsProcessor
-     */
-    public function __construct(SecretVarProcessor $secretsProcessor)
+    public function __construct(JweHandler $secretsHandler)
     {
-        $this->secretsProcessor = $secretsProcessor;
+        $this->secretsHandler = $secretsHandler;
         parent::__construct();
     }
 
@@ -80,18 +77,14 @@ HELP
     {
         $editor = $input->getOption('editor') ?? self::DEFAULT_EDITOR;
 
-        if ($this->secretsProcessor->isSecretsLookupEnabled()) {
-            $secretsHandler = $this->secretsProcessor->getSecretsHandler();
-        } else {
-            throw new RuntimeException("Configure encrypted_secrets by setting encrypted_secrets.enabled to true and configuring encrypted_secrets.public_key_file and encrypted_secrets.secrets_file in your config");
-        }
+        $this->secretsHandler->validateConfig($decryptRequired = true);
 
         $tempFileName = tempnam(sys_get_temp_dir(), "");
         try {
-            $secretsHandler->writePlaintext($tempFileName);
+            $this->secretsHandler->writePlaintext($tempFileName);
             system("$editor $tempFileName > `tty`");
-            $secretsHandler->regenerateEncryptedEntries($tempFileName)
-                           ->writeEncrypted();
+            $this->secretsHandler->regenerateEncryptedEntries($tempFileName)
+                                 ->writeEncrypted();
         } finally {
             unlink($tempFileName);
         }

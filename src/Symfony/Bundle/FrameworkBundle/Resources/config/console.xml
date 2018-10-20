@@ -132,11 +132,5 @@
             <argument type="collection" /> <!-- All type guessers are stored here by FormPass -->
             <tag name="console.command" command="debug:form" />
         </service>
-
-        <!-- TODO make this a secrets:enable command -->
-        <!-- <service id="console.command.secrets_add" class="Symfony\Bundle\FrameworkBundle\Command\SecretsAddCommand">
-            <argument type="service" id="secret_var_processor" />
-            <tag name="console.command" command="secrets:add" />
-        </service> -->
     </services>
 </container>

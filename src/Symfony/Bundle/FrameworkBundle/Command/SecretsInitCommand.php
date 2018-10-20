@@ -4,6 +4,7 @@ namespace Symfony\Bundle\FrameworkBundle\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -11,14 +12,15 @@ use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 
 /**
- * Console command to update your encrypted_secrets public/private key pair
- * Usage: php bin/console secrets:update-keypair
+ * Console command to set up encrypted secrets
+ * Usage: php bin/console secrets:init
  */
-class SecretsUpdateKeyPairCommand extends Command
+class SecretsInitCommand extends AbstractConfigCommand
 {
-    protected static $defaultName = 'secrets:update-keypair';
+    protected static $defaultName = 'secrets:init';
     private $io;
     private $secretsHandler;
+
 
     public function __construct(JweHandler $secretsHandler)
     {
@@ -32,20 +34,11 @@ class SecretsUpdateKeyPairCommand extends Command
     protected function configure()
     {
         $this
-            ->setDescription('Update your encrypted_secrets public/private key pair')
+            ->setDescription('Set up encrypted_secrets public/private keypair and encrypted secrets file')
             ->setHelp(<<<'HELP'
-The <info>%command.name%</info> updates your encrypted_secrets public/private key pair.
-If encrypted_secrets.enabled is set to true in your yaml config,
+The <info>%command.name%</info> command creates an empty secrets file based on the location configured encrypted_secrets.secrets_file,
+and generates a key pair based on the values set in encrypted_secrets.private_key_file and encrypted_secrets.public_key_file.
 
-  <info>php %command.full_name%</info>
-  
-will temporarily decrypt the values from the json secrets file set by encrypted_secrets.secrets_file using the public and private key pair specified by
-encrypted_secrets.public_key_file and encrypted_secrets.private_key_file. It will then generate a new key pair, re-encrypt your secrets, and update the public and private key files.
-
-After running this command, use
-
-  <info>php bin/console secrets:add</info> or <info>php bin/console secrets:edit</info> to modify your secrets.
-  
 Always store your private key in a secure location outside of version control; you will not be able to recover your secrets without it.
 HELP
             )
@@ -62,9 +55,11 @@ HELP
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->secretsHandler->updateKeyPair();
+        //TODO make this command interactive, call this with $overwriteExisting = false first, rescue overwrite error,
+        // and prompt user for whether or not you should overwrite
+        $this->secretsHandler->initSecretsFiles($overwriteExisting = true);        
 
-        $this->io->success('Secrets have been successfully encrypted. Be sure to store the private key used in a secure location.');
+        $this->io->success('Secrets have been successfully enabled.');
     }
 }
 
