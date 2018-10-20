@@ -66,8 +66,7 @@ HELP
         $secretValue = $input->getArgument('secret-value');
 
         $this->secretsHandler->validateConfig()
-                             ->addEntry($name, $secretValue)
-                             ->writeEncrypted();
+                             ->addEntry($name, $secretValue);
 
         //TODO- $this->secretsHandler->validateEncryptedSecrets();
         $this->io->success(sprintf(

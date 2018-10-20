@@ -83,8 +83,7 @@ HELP
         try {
             $this->secretsHandler->writePlaintext($tempFileName);
             system("$editor $tempFileName > `tty`");
-            $this->secretsHandler->regenerateEncryptedEntries($tempFileName)
-                                 ->writeEncrypted();
+            $this->secretsHandler->regenerateEncryptedEntries($tempFileName);
         } finally {
             unlink($tempFileName);
         }
