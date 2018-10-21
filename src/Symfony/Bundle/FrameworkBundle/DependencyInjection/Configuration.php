@@ -1128,34 +1128,39 @@ class Configuration implements ConfigurationInterface
                     ->children()
                         ->scalarNode('secrets_file')
                             ->info('Set the file location to read encrypted secrets from')
-                            ->example("'%kernel.project_dir%/config/secrets.enc.json' to set the file location to config/secrets.enc.json")
-                            ->defaultValue('%kernel.project_dir%/config/secrets.enc.json')
-                            ->treatNullLike(array('enabled' => false))
-                            ->validate()
-                                ->ifTrue(function ($v) { return !(\is_string($v) || \is_null($v)); })
-                                ->thenInvalid('If set, the "encrypted_secrets.secrets_file" should be a string path to an existing secrets file')
-                            ->end()
+                            ->example("'%kernel.project_dir%/config/secrets/secrets.enc.json' to set the file location to config/secrets.enc.json")
+                            ->defaultValue('%kernel.project_dir%/config/secrets/secrets.enc.json')
                         ->end()
                         ->scalarNode('private_key_file')
                             ->info('Set the file location to read the private decryption key from')
-                            ->example("/etc/your-project-name/master-key")
+                            ->example("/etc/your-project-name/.master-key")
                             ->defaultNull()
-                            ->treatNullLike(array('enabled' => false))
                             ->validate()
-                                ->ifTrue(function ($v) { return !(\is_string($v) || \is_null($v)); })
+                                ->ifTrue(function ($v) { return !(\is_string($v) && !\is_null($v)); })
                                 ->thenInvalid('If set, the "encrypted_secrets.private_key_file" should be a string path to an existing file containing a 32 byte private key')
                             ->end()
                         ->end()
                         ->scalarNode('public_key_file')
                             ->info('Set the file location to read the public encryption key from')
                             ->example('%kernel.project_dir%/config/secrets.pub')
-                            ->defaultNull()
-                            ->treatNullLike(array('enabled' => false))
-                            ->validate()
-                                ->ifTrue(function ($v) { return !(\is_string($v) || \is_null($v)); })
-                                ->thenInvalid('If set, the "encrypted_secrets.public_key_file" should be a string path to an existing file containing a 32 byte public key')
-                            ->end()
+                            ->defaultValue('%kernel.project_dir%/config/secrets/secrets.pub')
                         ->end()
+                    ->end()
+                    ->validate()
+                        ->ifTrue(function($nodeValues) {
+                            if (isset($nodeValues['enabled']) && true === $nodeValues['enabled']) {
+                                if (!isset($nodeValues['secrets_file']) || !\is_string($nodeValues['secrets_file'])) {
+                                    return true;
+                                }
+
+                                if (!isset($nodeValues['public_key_file']) || !\is_string($nodeValues['public_key_file'])) {
+                                    return true;
+                                }
+                            }
+
+                            return false;
+                        })
+                        ->thenInvalid('If encrypted_secrets are enabled, the public_key_file and secrets_file should be string paths to the file locations')
                     ->end()
                 ->end()
             ->end()

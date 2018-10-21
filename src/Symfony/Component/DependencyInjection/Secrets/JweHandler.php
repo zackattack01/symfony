@@ -45,10 +45,7 @@ final class JweHandler
     public function decrypt(string $key)
     {
         if (!isset($this->privateKeyLocation)) {
-            throw new RuntimeException(sprintf(
-                '%s must be initialized with a secret key file location to read secrets.',
-                get_class($this)
-            ));
+            throw new RuntimeException('encrypted_secrets must be configured with an private_key_file location to read secrets.');
         }
 
         if (!isset($this->secrets[$key])) {
@@ -69,15 +66,14 @@ final class JweHandler
      */
     public function regenerateEncryptedEntries(string $plaintextLocation)
     {
-        if ($this->isValidSecretsFile($plaintextLocation)) {
-            $plaintextSecrets = $this->readSecrets($plaintextLocation);
+        if ($this->isValidSecretsFile($plaintextLocation) && $plaintextSecrets = $this->readSecrets($plaintextLocation)) {
             $this->secrets = [];
             foreach ($plaintextSecrets as $key => $secret) {
                 $this->addEntry($key, $secret);
             }
         } else {
             throw new InvalidArgumentException(sprintf(
-                'plaintextLocation %s must point to a file with valid json secrets',
+                'plaintext key location %s must point to a file with valid json secrets',
                 $plaintextLocation
             ));
         }
@@ -107,13 +103,13 @@ final class JweHandler
 
     /**
      * @throws InvalidArgumentException if the secretsLocation does not point to a readable secrets file with valid json,
-     * or if the public and private key files do
+     * or if the public and private key files do not point to existing, readable files with 32 byte key values
      */
     public function validateConfig(bool $decryptRequired = false)
     {
-        if (!$this->isValidSecretsFile($this->secretsLocation)) {
+        if (!$this->isValidSecretsFile($this->secretsLocation) || !$this->readSecrets($this->secretsLocation)) {
              throw new InvalidArgumentException(sprintf(
-                'secretsLocation %s must point to an existing, readable file',
+                'secretsLocation %s must point to an existing, readable file with valid json secrets',
                 $this->secretsLocation
             ));
         }
@@ -126,10 +122,10 @@ final class JweHandler
             ));
         }
 
-        if ($decryptRequired && !$this->isValidKeyLocation($this->privateKeyLocation)) {
+        if ($decryptRequired && (!isset($this->privateKeyLocation) || !$this->isValidKeyLocation($this->privateKeyLocation))) {
             throw new InvalidArgumentException(sprintf(
-                'privateKeyLocation %s must point to an existing %u byte file',
-                $this->privateKeyLocation,
+                'the configuration for encrypted_secrets.private_key_file (%s) must point to an existing %u byte file',
+                $this->privateKeyLocation ?? "not set",
                 SODIUM_CRYPTO_BOX_SECRETKEYBYTES
             ));
         }
@@ -160,9 +156,17 @@ final class JweHandler
     private function collectKeyPair()
     {
         return sodium_crypto_box_keypair_from_secretkey_and_publickey(
-            $this->readKey($this->privateKeyLocation),
-            $this->readKey($this->publicKeyLocation)
+            $this->getPrivateKey(),
+            $this->getPublicKey()
         );
+    }
+
+    /**
+     * @return string
+     */
+    private function getPrivateKey()
+    {
+        return $this->readKey($this->privateKeyLocation);
     }
 
     /**
@@ -239,9 +243,8 @@ final class JweHandler
     }
 
     /**
-     * @return array
-     *
-     * @throws InvalidArgumentException if the $secretsLocation file does not contain valid json secrets
+     * returns the decoded json secrets from $secretsLocation or false if the file does not contain valid json
+     * @return array|false
      */
     private function readSecrets(string $secretsLocation)
     {

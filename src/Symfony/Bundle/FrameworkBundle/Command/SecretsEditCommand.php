@@ -49,10 +49,10 @@ The <info>%command.name%</info> opens an editor session with decrypted secrets a
 encrypted_secrets.enabled must set to true in your yaml config for the environment you are running this in.
 
   <info>php %command.full_name%</info>
-  
+
 will temporarily decrypt the values from the json secrets file set by encrypted_secrets.secrets_file, using the public and private key pair specified by
 encrypted_secrets.public_key_file and encrypted_secrets.private_key_file. After you've finished editing, the values will be re-encrypted.
-  
+
 Always store your private key in a secure location outside of version control; you will not be able to recover your secrets without it.
 HELP
             )
