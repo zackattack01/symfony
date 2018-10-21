@@ -44,8 +44,8 @@ final class JweHandler
      */
     public function decrypt(string $key)
     {
-        if (!isset($this->privateKeyLocation)) {
-            throw new RuntimeException('encrypted_secrets must be configured with an private_key_file location to read secrets.');
+        if (!isset($this->privateKeyLocation) || !$this->isValidKeyLocation($this->privateKeyLocation)) {
+            throw new RuntimeException('encrypted_secrets must be configured with an existing private_key_file location to read secrets.');
         }
 
         if (!isset($this->secrets[$key])) {
