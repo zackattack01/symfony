@@ -11,10 +11,6 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 
-/**
- * Console command to add an encrypted secret
- * Usage: php bin/console secrets:add
- */
 class SecretsAddCommand extends Command
 {
     protected static $defaultName = 'secrets:add';
@@ -36,8 +32,6 @@ class SecretsAddCommand extends Command
             ->setDescription('Encrypt and add a secret key value pair to the specified secrets file')
             ->setHelp(<<<'HELP'
 The <info>%command.name%</info> command adds an encrypted secret to the secrets-file configured in encrypted_secrets.secrets_file
-
-encrypted_secrets.enabled must set to true in your yaml config for the environment you are running this in.
 
   <info>php %command.full_name% DATABASE_URL mysql://db_user:db_password@127.0.0.1:3306/db_name</info>
 

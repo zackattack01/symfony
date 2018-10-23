@@ -35,17 +35,16 @@ class SecretsUpdateKeyPairCommand extends Command
             ->setDescription('Update your encrypted_secrets public/private key pair')
             ->setHelp(<<<'HELP'
 The <info>%command.name%</info> updates your encrypted_secrets public/private key pair.
-If encrypted_secrets.enabled is set to true in your yaml config,
 
   <info>php %command.full_name%</info>
-  
+
 will temporarily decrypt the values from the json secrets file set by encrypted_secrets.secrets_file using the public and private key pair specified by
 encrypted_secrets.public_key_file and encrypted_secrets.private_key_file. It will then generate a new key pair, re-encrypt your secrets, and update the public and private key files.
 
 After running this command, use
 
   <info>php bin/console secrets:add</info> or <info>php bin/console secrets:edit</info> to modify your secrets.
-  
+
 Always store your private key in a secure location outside of version control; you will not be able to recover your secrets without it.
 HELP
             )

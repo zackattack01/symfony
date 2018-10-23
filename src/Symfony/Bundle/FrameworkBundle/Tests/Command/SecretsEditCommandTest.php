@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\FrameworkBundle\Command\SecretsEditCommand;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
-use Symfony\Component\DependencyInjection\SecretVarProcessor;
+use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 use Symfony\Component\HttpKernel\KernelInterface;
 
 class SecretsEditCommandTest extends TestCase
@@ -55,7 +55,7 @@ class SecretsEditCommandTest extends TestCase
 
     private function generateMockSecretsHandler()
     {
-        return $this->getMockBuilder(SecretVarProcessor::class)
+        return $this->getMockBuilder(JweHandler::class)
                             ->getMock();
     }
 }

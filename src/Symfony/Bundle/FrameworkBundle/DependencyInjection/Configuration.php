@@ -1147,13 +1147,15 @@ class Configuration implements ConfigurationInterface
                         ->end()
                     ->end()
                     ->validate()
-                        ->ifTrue(function($nodeValues) {
-                            if (isset($nodeValues['enabled']) && true === $nodeValues['enabled']) {
-                                if (!isset($nodeValues['secrets_file']) || !\is_string($nodeValues['secrets_file'])) {
+                        ->ifTrue(function($config) { return isset($config['enabled']) && true === $config['enabled'] && !\extension_loaded('libsodium'); })
+                        ->thenInvalid('Encrypted secrets are not supported. Please install the libsodium extension or upgrade to PHP 7.2+.')
+                        ->ifTrue(function($config) {
+                            if (isset($config['enabled']) && true === $config['enabled']) {
+                                if (!isset($config['secrets_file']) || !\is_string($config['secrets_file'])) {
                                     return true;
                                 }
 
-                                if (!isset($nodeValues['public_key_file']) || !\is_string($nodeValues['public_key_file'])) {
+                                if (!isset($config['public_key_file']) || !\is_string($config['public_key_file'])) {
                                     return true;
                                 }
                             }

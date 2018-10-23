@@ -22,9 +22,6 @@ final class JweHandler
         $this->secretsLocation = $secretsLocation;
         $this->publicKeyLocation = $publicKeyLocation;
         $this->privateKeyLocation = $privateKeyLocation;
-        if ($this->isValidSecretsFile($this->secretsLocation) && $secrets = $this->readSecrets($this->secretsLocation)) {
-            $this->secrets = $secrets;
-        }
     }
 
     /**
@@ -32,21 +29,18 @@ final class JweHandler
      */
     public function addEntry(string $key, string $secret)
     {
+        $this->validateConfig();
         $this->secrets[$key] = JweEntry::encrypt($secret, $this->getPublicKey());
         $this->writeEncrypted();
         return $this;
     }
 
     /**
-     * @return string
-     *
      * @throws RuntimeException if the privateKeyLocation is not configured, or a value does not exist for the required key
      */
-    public function decrypt(string $key)
+    public function decrypt(string $key): string
     {
-        if (!isset($this->privateKeyLocation) || !$this->isValidKeyLocation($this->privateKeyLocation)) {
-            throw new RuntimeException('encrypted_secrets must be configured with an existing private_key_file location to read secrets.');
-        }
+        $this->validateConfig($decryptRequired = true);
 
         if (!isset($this->secrets[$key])) {
             throw new RuntimeException(sprintf(
@@ -60,12 +54,52 @@ final class JweHandler
     }
 
     /**
+     * @throws InvalidArgumentException if the fileLocation does not exist in a writable directory or
+     * if the file already exists and $overwriteExisting is set to false
+     */
+    public function initSecretsFiles(bool $overwriteExisting)
+    {
+        if (!$overwriteExisting) {
+            if (file_exists($this->secretsLocation)) {
+                throw new InvalidArgumentException(sprintf(
+                    'secrets file at %s already exists',
+                    $this->secretsLocation
+                ));
+            }
+
+            if (file_exists($this->publicKeyLocation)) {
+                throw new InvalidArgumentException(sprintf(
+                    'public key file at %s already exists',
+                    $this->publicKeyLocation
+                ));
+            }
+
+            if (file_exists($this->privateKeyLocation)) {
+                throw new InvalidArgumentException(sprintf(
+                    'private key file at %s already exists',
+                    $this->privateKeyLocation
+                ));
+            }
+        }
+
+        $this->writeFile(
+            $this->secretsLocation,
+            json_encode([], self::JSON_ENCODE_OPTIONS),
+            $makeConfigDir = true
+        );
+
+        $this->writeNewKeyPair();
+        return $this;
+    }
+
+    /**
      * @return $this
      *
      * @throws InvalidArgumentException if the plaintext file does not contain valid secrets
      */
     public function regenerateEncryptedEntries(string $plaintextLocation)
     {
+        $this->validateConfig();
         if ($this->isValidSecretsFile($plaintextLocation) && $plaintextSecrets = $this->readSecrets($plaintextLocation)) {
             $this->secrets = [];
             foreach ($plaintextSecrets as $key => $secret) {
@@ -107,9 +141,16 @@ final class JweHandler
      */
     public function validateConfig(bool $decryptRequired = false)
     {
-        if (!$this->isValidSecretsFile($this->secretsLocation) || !$this->readSecrets($this->secretsLocation)) {
+        if (!$this->isValidSecretsFile($this->secretsLocation)) {
              throw new InvalidArgumentException(sprintf(
-                'secretsLocation %s must point to an existing, readable file with valid json secrets',
+                'encrypted_secrets.secrets_file location %s must point to an existing, readable file',
+                $this->secretsLocation
+            ));
+        }
+
+        if (!$this->populateSecrets()) {
+             throw new InvalidArgumentException(sprintf(
+                'encrypted_secrets.secrets_file location %s must contain valid json secrets',
                 $this->secretsLocation
             ));
         }
@@ -122,10 +163,14 @@ final class JweHandler
             ));
         }
 
-        if ($decryptRequired && (!isset($this->privateKeyLocation) || !$this->isValidKeyLocation($this->privateKeyLocation))) {
+        if ($decryptRequired && !isset($this->privateKeyLocation)) {
+            throw new InvalidArgumentException('encrypted_secrets must be configured with a private_key_file location to read secrets.');
+        }
+
+        if ($decryptRequired && !$this->isValidKeyLocation($this->privateKeyLocation)) {
             throw new InvalidArgumentException(sprintf(
                 'the configuration for encrypted_secrets.private_key_file (%s) must point to an existing %u byte file',
-                $this->privateKeyLocation ?? "not set",
+                $this->privateKeyLocation,
                 SODIUM_CRYPTO_BOX_SECRETKEYBYTES
             ));
         }
@@ -139,8 +184,8 @@ final class JweHandler
      */
     public function writePlaintext(string $fileLocation)
     {
+        $this->validateConfig($decryptRequired = true);
         $plaintextSecrets = [];
-        $this->populateSecrets();
         foreach (array_keys($this->secrets) as $key) {
             $plaintextSecrets[$key] = $this->decrypt($key);
         }
@@ -161,80 +206,33 @@ final class JweHandler
         );
     }
 
-    /**
-     * @return string
-     */
-    private function getPrivateKey()
+    private function getPrivateKey(): string
     {
         return $this->readKey($this->privateKeyLocation);
     }
 
-    /**
-     * @return string
-     */
-    private function getPublicKey()
+    private function getPublicKey(): string
     {
         return $this->readKey($this->publicKeyLocation);
     }
 
-    /**
-     * @throws InvalidArgumentException if the fileLocation does not exist in a writable directory or
-     * if the file already exists and $overwriteExisting is set to false
-     */
-    public function initSecretsFiles(bool $overwriteExisting)
-    {
-        if (!$overwriteExisting) {
-            if (file_exists($this->secretsLocation)) {
-                throw new InvalidArgumentException(sprintf(
-                    'secrets file at %s already exists',
-                    $this->secretsLocation
-                ));
-            }
-
-            if (file_exists($this->publicKeyLocation)) {
-                throw new InvalidArgumentException(sprintf(
-                    'public key file at %s already exists',
-                    $this->publicKeyLocation
-                ));
-            }
-
-            if (file_exists($this->privateKeyLocation)) {
-                throw new InvalidArgumentException(sprintf(
-                    'private key file at %s already exists',
-                    $this->privateKeyLocation
-                ));
-            }
-        }
-
-        $this->writeFile($this->secretsLocation, json_encode([], self::JSON_ENCODE_OPTIONS));
-        $this->writeNewKeyPair();
-        return $this;
-    }
-
-    /**
-     * @return bool
-     */
-    private function isValidKeyLocation(string $filePath)
+    private function isValidKeyLocation(string $filePath): bool
     {
         return $this->isValidSecretsFile($filePath) &&
             (SODIUM_CRYPTO_BOX_SECRETKEYBYTES === filesize($filePath));
     }
 
-    /**
-     * @return bool
-     */
-    private function isValidSecretsFile(string $filePath)
+    private function isValidSecretsFile(string $filePath): bool
     {
         return (stream_is_local($filePath) && is_readable($filePath));
     }
 
     /**
-     * @return array
+     * @return array|false
      */
     private function populateSecrets()
     {
-        $this->secrets = $this->readSecrets($this->secretsLocation);
-        return $this;
+        return $this->secrets = $this->readSecrets($this->secretsLocation);
     }
 
     private function readKey(string $keyLocation)
@@ -262,17 +260,31 @@ final class JweHandler
         return $this;
     }
 
-    private function writeFile(string $fileLocation, string $content)
+    private function writeFile(string $fileLocation, string $content, $makeConfigDir = false)
     {
         $fileDir = pathinfo($fileLocation, PATHINFO_DIRNAME);
-        if (!is_dir($fileDir) || !is_writeable($fileLocation)) {
+
+        if (!is_dir($fileDir)) {
+            //TODO make this read whatever the dev's absolute config path is and check against that
+            if ($makeConfigDir && ('config' === pathinfo($fileDir, PATHINFO_DIRNAME))) {
+                mkdir($fileDir);
+            } else {
+                throw new InvalidArgumentException(sprintf(
+                    'directory %s for encrypted secrets file location %s does not exist',
+                    $fileDir,
+                    $fileLocation
+                ));
+            }
+        }
+
+        if (!is_writeable($fileLocation)) {
             throw new InvalidArgumentException(sprintf(
-                'file location for secrets at %s must exist in a writable directory',
+                'file location for encrypted secrets at %s must exist in a writable directory',
                 $fileLocation
             ));
         }
 
-        return file_put_contents($fileLocation, $content) > 0;
+        file_put_contents($fileLocation, $content);
     }
 
     private function writeNewKeyPair()
