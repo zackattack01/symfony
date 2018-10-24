@@ -12,17 +12,9 @@
 namespace Symfony\Component\DependencyInjection;
 
 use Symfony\Component\DependencyInjection\Exception\RuntimeException;
-use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 
-final class SecretVarProcessor implements EnvVarProcessorInterface
+final class NoopSecretVarProcessor implements EnvVarProcessorInterface
 {
-    private $secretsHandler;
-
-    public function __construct(JweHandler $secretsHandler)
-    {
-        $this->secretsHandler = $secretsHandler;
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -39,7 +31,10 @@ final class SecretVarProcessor implements EnvVarProcessorInterface
     public function getEnv($prefix, $name, \Closure $getEnv)
     {
         if ('secret' === $prefix) {
-            return $this->secretsHandler->decrypt($name);
+            // encrypted_secrets config is not enabled for the current environment, drop the secret prefix
+            // and defer processing. this is done to allow users to opt into encrypted_secrets per
+            // environment without needing to override each config parameter with the secret prefix.
+            return $getEnv($name);
         }
 
         throw new RuntimeException(sprintf('Unsupported env var prefix "%s".', $prefix));

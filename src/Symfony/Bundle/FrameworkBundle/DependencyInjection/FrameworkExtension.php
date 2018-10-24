@@ -777,16 +777,17 @@ class FrameworkExtension extends Extension
 
     private function registerEncryptedSecretsConfiguration(array $config, ContainerBuilder $container)
     {
+        $container->removeDefinition('secrets.noop_secret_var_processor');
         $secretsFile = $config['encrypted_secrets']['secrets_file'];
         $publicKeyFile = $config['encrypted_secrets']['public_key_file'];
         $privateKeyFile = $config['encrypted_secrets']['private_key_file'];
-        $container->getDefinition('jwe_handler')
+        $container->getDefinition('secrets.jwe_handler')
                   ->addArgument($secretsFile)
                   ->addArgument($publicKeyFile)
                   ->addArgument($privateKeyFile);
 
-        $handler = new Reference('jwe_handler');
-        $container->getDefinition('secret_var_processor')
+        $handler = new Reference('secrets.jwe_handler');
+        $container->getDefinition('secrets.secret_var_processor')
                   ->addArgument($handler);
     }
 

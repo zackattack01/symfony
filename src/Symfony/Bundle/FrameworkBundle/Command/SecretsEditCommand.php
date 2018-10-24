@@ -77,8 +77,6 @@ HELP
     {
         $editor = $input->getOption('editor') ?? self::DEFAULT_EDITOR;
 
-        $this->secretsHandler->validateConfig($decryptRequired = true);
-
         $tempFileName = tempnam(sys_get_temp_dir(), "");
         try {
             $this->secretsHandler->writePlaintext($tempFileName);

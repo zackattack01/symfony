@@ -59,10 +59,9 @@ HELP
         $name = $input->getArgument('secret-name');
         $secretValue = $input->getArgument('secret-value');
 
-        $this->secretsHandler->validateConfig()
-                             ->addEntry($name, $secretValue);
+        $this->secretsHandler->addEntry($name, $secretValue);
+        //TODO-              ->validateEncryptedSecrets();
 
-        //TODO- $this->secretsHandler->validateEncryptedSecrets();
         $this->io->success(sprintf(
             'Secret for %s has been successfully added.',
             $name

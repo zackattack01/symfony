@@ -62,7 +62,6 @@ HELP
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->secretsHandler->updateKeyPair();
-
         $this->io->success('Secrets have been successfully encrypted. Be sure to store the private key used in a secure location.');
     }
 }
