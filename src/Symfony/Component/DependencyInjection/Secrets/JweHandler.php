@@ -24,15 +24,11 @@ final class JweHandler
         $this->privateKeyLocation = $privateKeyLocation;
     }
 
-    /**
-     * @return $this
-     */
-    public function addEntry(string $key, string $secret)
+    public function addEntry(string $key, string $secret): void
     {
         $this->validateConfig();
         $this->secrets[$key] = JweEntry::encrypt($secret, $this->getPublicKey());
         $this->writeEncrypted();
-        return $this;
     }
 
     /**
@@ -57,7 +53,7 @@ final class JweHandler
      * @throws InvalidArgumentException if the fileLocation does not exist in a writable directory or
      * if the file already exists and $overwriteExisting is set to false
      */
-    public function initSecretsFiles(bool $overwriteExisting)
+    public function initSecretsFiles(bool $overwriteExisting): void
     {
         if (!$overwriteExisting) {
             if (file_exists($this->secretsLocation)) {
@@ -89,15 +85,12 @@ final class JweHandler
         );
 
         $this->writeNewKeyPair();
-        return $this;
     }
 
     /**
-     * @return $this
-     *
      * @throws InvalidArgumentException if the plaintext file does not contain valid secrets
      */
-    public function regenerateEncryptedEntries(string $plaintextLocation)
+    public function regenerateEncryptedEntries(string $plaintextLocation): void
     {
         $this->validateConfig();
         if ($this->isValidSecretsFile($plaintextLocation) && $plaintextSecrets = $this->readSecrets($plaintextLocation)) {
@@ -113,7 +106,6 @@ final class JweHandler
         }
 
         $this->writeEncrypted();
-        return $this;
     }
 
     /**
@@ -121,15 +113,15 @@ final class JweHandler
      *
      * @throws InvalidArgumentException if the $publicKeyLocation or $privateKeyLocation cannot be written
      */
-    public function updateKeyPair()
+    public function updateKeyPair(): void
     {
         $tempSecretsLocation = tempnam(sys_get_temp_dir(), "");
         try {
             //TODO should probably add a temp backup and make this behave like a transaction
-            $this->writePlaintext($tempSecretsLocation)
-                 ->writeNewKeyPair()
-                 ->regenerateEncryptedEntries($tempSecretsLocation)
-                 ->writeEncrypted();
+            $this->writePlaintext($tempSecretsLocation);
+            $this->writeNewKeyPair();
+            $this->regenerateEncryptedEntries($tempSecretsLocation);
+            $this->writeEncrypted();
         } finally {
             unlink($tempSecretsLocation);
         }
@@ -139,7 +131,7 @@ final class JweHandler
      * @throws InvalidArgumentException if the secretsLocation does not point to a readable secrets file with valid json,
      * or if the public and private key files do not point to existing, readable files with 32 byte key values
      */
-    public function validateConfig(bool $decryptRequired = false)
+    public function validateConfig(bool $decryptRequired = false): void
     {
         if (!$this->isValidSecretsFile($this->secretsLocation)) {
              throw new InvalidArgumentException(sprintf(
@@ -174,15 +166,12 @@ final class JweHandler
                 SODIUM_CRYPTO_BOX_SECRETKEYBYTES
             ));
         }
-
-        return $this;
     }
 
     /**
      * Decrypts all populated secrets and writes the plaintext to the provided $fileLocation
-     * @return $this
      */
-    public function writePlaintext(string $fileLocation)
+    public function writePlaintext(string $fileLocation): void
     {
         $this->validateConfig($decryptRequired = true);
         $plaintextSecrets = [];
@@ -191,7 +180,6 @@ final class JweHandler
         }
 
         $this->writeFile($fileLocation, json_encode($plaintextSecrets, self::JSON_ENCODE_OPTIONS));
-        return $this;
     }
 
     /**
@@ -251,16 +239,12 @@ final class JweHandler
         return json_decode($rawSecrets, true);
     }
 
-    /**
-     * @return $this
-     */
-    private function writeEncrypted()
+    private function writeEncrypted(): void
     {
         $this->writeFile($this->secretsLocation, json_encode($this->secrets, self::JSON_ENCODE_OPTIONS));
-        return $this;
     }
 
-    private function writeFile(string $fileLocation, string $content, $makeConfigDir = false)
+    private function writeFile(string $fileLocation, string $content, $makeConfigDir = false): void
     {
         $fileDir = pathinfo($fileLocation, PATHINFO_DIRNAME);
 
@@ -287,12 +271,10 @@ final class JweHandler
         file_put_contents($fileLocation, $content);
     }
 
-    private function writeNewKeyPair()
+    private function writeNewKeyPair(): void
     {
         $newKeyPair = sodium_crypto_box_keypair();
         $this->writeFile($this->privateKeyLocation, sodium_crypto_box_secretkey($newKeyPair));
         $this->writeFile($this->publicKeyLocation, sodium_crypto_box_publickey($newKeyPair));
-
-        return $this;
     }
 }

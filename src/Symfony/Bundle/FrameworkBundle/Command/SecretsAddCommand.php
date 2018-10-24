@@ -60,7 +60,7 @@ HELP
         $secretValue = $input->getArgument('secret-value');
 
         $this->secretsHandler->addEntry($name, $secretValue);
-        //TODO-              ->validateEncryptedSecrets();
+        //TODO- $this->secretsHandler->validateEncryptedSecrets();
 
         $this->io->success(sprintf(
             'Secret for %s has been successfully added.',
