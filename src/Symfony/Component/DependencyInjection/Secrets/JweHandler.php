@@ -53,7 +53,7 @@ final class JweHandler
 
     /**
      * @throws InvalidArgumentException if the fileLocation does not exist in a writable directory or
-     * if the file already exists and $overwriteExisting is set to false
+     *                                  if the file already exists and $overwriteExisting is set to false
      */
     public function initSecretsFiles(bool $overwriteExisting): void
     {
@@ -82,7 +82,7 @@ final class JweHandler
 
         $this->writeFile(
             $this->secretsLocation,
-            json_encode([], self::JSON_ENCODE_OPTIONS),
+            json_encode(array(), self::JSON_ENCODE_OPTIONS),
             $makeConfigDir = true
         );
 
@@ -96,7 +96,7 @@ final class JweHandler
     {
         $this->validateConfig();
         if ($this->isValidSecretsFile($plaintextLocation) && $plaintextSecrets = $this->readSecrets($plaintextLocation)) {
-            $this->secrets = [];
+            $this->secrets = array();
             foreach ($plaintextSecrets as $key => $secret) {
                 $this->addEntry($key, $secret);
             }
@@ -111,13 +111,13 @@ final class JweHandler
     }
 
     /**
-     * generates a new key pair, and writes it to the configured public and private key locations after re-encrypting secrets
+     * generates a new key pair, and writes it to the configured public and private key locations after re-encrypting secrets.
      *
      * @throws InvalidArgumentException if the $publicKeyLocation or $privateKeyLocation cannot be written
      */
     public function updateKeyPair(): void
     {
-        $tempSecretsLocation = tempnam(sys_get_temp_dir(), "");
+        $tempSecretsLocation = tempnam(sys_get_temp_dir(), '');
         try {
             //TODO should probably add a temp backup and make this behave like a transaction
             $this->writePlaintext($tempSecretsLocation);
@@ -131,19 +131,19 @@ final class JweHandler
 
     /**
      * @throws InvalidArgumentException if the secretsLocation does not point to a readable secrets file with valid json,
-     * or if the public and private key files do not point to existing, readable files with 32 byte key values
+     *                                  or if the public and private key files do not point to existing, readable files with 32 byte key values
      */
     public function validateConfig(bool $decryptRequired = false): void
     {
         if (!$this->isValidSecretsFile($this->secretsLocation)) {
-             throw new InvalidArgumentException(sprintf(
+            throw new InvalidArgumentException(sprintf(
                 'encrypted_secrets.secrets_file location %s must point to an existing, readable file',
                 $this->secretsLocation
             ));
         }
 
         if (!$this->populateSecrets()) {
-             throw new InvalidArgumentException(sprintf(
+            throw new InvalidArgumentException(sprintf(
                 'encrypted_secrets.secrets_file location %s must contain valid json secrets',
                 $this->secretsLocation
             ));
@@ -171,12 +171,12 @@ final class JweHandler
     }
 
     /**
-     * Decrypts all populated secrets and writes the plaintext to the provided $fileLocation
+     * Decrypts all populated secrets and writes the plaintext to the provided $fileLocation.
      */
     public function writePlaintext(string $fileLocation): void
     {
         $this->validateConfig($decryptRequired = true);
-        $plaintextSecrets = [];
+        $plaintextSecrets = array();
         foreach (array_keys($this->secrets) as $key) {
             $plaintextSecrets[$key] = $this->decrypt($key);
         }
@@ -185,7 +185,8 @@ final class JweHandler
     }
 
     /**
-     * helper method to format a sodium crypto box keypair from the configured public and private key values
+     * helper method to format a sodium crypto box keypair from the configured public and private key values.
+     *
      * @return string
      */
     private function collectKeyPair()
@@ -214,7 +215,7 @@ final class JweHandler
 
     private function isValidSecretsFile(string $filePath): bool
     {
-        return (stream_is_local($filePath) && is_readable($filePath));
+        return stream_is_local($filePath) && is_readable($filePath);
     }
 
     /**
@@ -231,7 +232,8 @@ final class JweHandler
     }
 
     /**
-     * returns the decoded json secrets from $secretsLocation or false if the file does not contain valid json
+     * returns the decoded json secrets from $secretsLocation or false if the file does not contain valid json.
+     *
      * @return array|false
      */
     private function readSecrets(string $secretsLocation)
@@ -263,7 +265,7 @@ final class JweHandler
             }
         }
 
-        if (!is_writeable($fileLocation)) {
+        if (!is_writable($fileLocation)) {
             throw new InvalidArgumentException(sprintf(
                 'file location for encrypted secrets at %s must exist in a writable directory',
                 $fileLocation

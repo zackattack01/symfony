@@ -2,7 +2,6 @@
 
 namespace Symfony\Component\DependencyInjection\Secrets;
 
-
 use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 
 final class JweEntry
@@ -16,17 +15,19 @@ final class JweEntry
 
     public static function decrypt(string $compactedEntry, string &$keyPair)
     {
-        $entry = new JweEntry();
+        $entry = new self();
         $entry->hydrate($compactedEntry);
         $plaintext = $entry->decryptedSecret($keyPair);
         sodium_memzero($keyPair);
+
         return $plaintext;
     }
 
     public static function encrypt(string $secret, string $pubKey)
     {
-        $entry = new JweEntry();
+        $entry = new self();
         $entry->setEncryptedValues($secret, $pubKey);
+
         return $entry->compact();
     }
 
@@ -38,10 +39,10 @@ final class JweEntry
             sodium_bin2base64($this->encryptedKey, SODIUM_BASE64_VARIANT_URLSAFE),
             sodium_bin2base64($this->iv, SODIUM_BASE64_VARIANT_URLSAFE),
             sodium_bin2base64($this->cipherText, SODIUM_BASE64_VARIANT_URLSAFE),
-            $this->base64url_encode($this->authTag)
+            $this->base64url_encode($this->authTag),
         );
 
-        return implode(".", $valuesForCompaction);
+        return implode('.', $valuesForCompaction);
     }
 
     private function decryptedSecret(string &$keyPair)
@@ -57,9 +58,9 @@ final class JweEntry
             $this->iv,
             $plaintextCek
         );
-        if ($decrypted === false) {
+        if (false === $decrypted) {
             throw new RuntimeException(sprintf(
-                "Unable to decrypt secrets. Verify the configured key pair"
+                'Unable to decrypt secrets. Verify the configured key pair'
             ));
         }
 
@@ -69,14 +70,13 @@ final class JweEntry
     private function hydrate(string $compactedEntry)
     {
         //TODO add validations
-        list($header, $encryptedKey, $iv, $cipherText, $authTag) = explode(".", $compactedEntry);
+        list($header, $encryptedKey, $iv, $cipherText, $authTag) = explode('.', $compactedEntry);
         $this->header = $this->base64url_decode($header);
         $this->encryptedKey = sodium_base642bin($encryptedKey, SODIUM_BASE64_VARIANT_URLSAFE);
         $this->iv = sodium_base642bin($iv, SODIUM_BASE64_VARIANT_URLSAFE);
         $this->cipherText = sodium_base642bin($cipherText, SODIUM_BASE64_VARIANT_URLSAFE);
         $this->authTag = $this->base64url_decode($authTag);
     }
-
 
     private function setEncryptedValues(string $secret, string $pubKey)
     {
@@ -99,7 +99,7 @@ final class JweEntry
                 $rawCek
             );
         } else {
-            $ciphertext = "";
+            $ciphertext = '';
             //TODO: add alternative encryption method
         }
 
