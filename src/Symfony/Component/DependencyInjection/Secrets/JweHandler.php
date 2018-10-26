@@ -46,7 +46,9 @@ final class JweHandler
             ));
         }
 
-        return JweEntry::decrypt($this->secrets[$key], $this->collectKeyPair());
+        $keyPair = $this->collectKeyPair();
+
+        return JweEntry::decrypt($this->secrets[$key], $keyPair);
     }
 
     /**

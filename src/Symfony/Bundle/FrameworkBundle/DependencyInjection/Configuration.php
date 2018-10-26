@@ -1149,6 +1149,8 @@ class Configuration implements ConfigurationInterface
                     ->validate()
                         ->ifTrue(function($config) { return isset($config['enabled']) && true === $config['enabled'] && !\extension_loaded('libsodium'); })
                         ->thenInvalid('Encrypted secrets are not supported. Please install the libsodium extension or upgrade to PHP 7.2+.')
+                        ->ifTrue(function($config) { return isset($config['enabled']) && true === $config['enabled'] && !\sodium_crypto_aead_aes256gcm_is_available(); })
+                        ->thenInvalid('This CPU does not support the implementation of AES256-GCM encryption at this time, encrypted_secrets cannot be used on this machine. See https://libsodium.gitbook.io/doc/secret-key_cryptography/aead/aes-256-gcm for the specific hardware limitations.')
                         ->ifTrue(function($config) {
                             if (isset($config['enabled']) && true === $config['enabled']) {
                                 if (!isset($config['secrets_file']) || !\is_string($config['secrets_file'])) {

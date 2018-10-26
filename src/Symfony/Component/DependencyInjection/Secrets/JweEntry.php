@@ -14,11 +14,13 @@ final class JweEntry
     private $cipherText;
     private $authTag;
 
-    public static function decrypt(string $compactedEntry, string $keyPair)
+    public static function decrypt(string $compactedEntry, string &$keyPair)
     {
         $entry = new JweEntry();
         $entry->hydrate($compactedEntry);
-        return $entry->decryptedSecret($keyPair);
+        $plaintext = $entry->decryptedSecret($keyPair);
+        sodium_memzero($keyPair);
+        return $plaintext;
     }
 
     public static function encrypt(string $secret, string $pubKey)
@@ -42,28 +44,23 @@ final class JweEntry
         return implode(".", $valuesForCompaction);
     }
 
-    private function decryptedSecret(string $keyPair)
+    private function decryptedSecret(string &$keyPair)
     {
         $plaintextCek = sodium_crypto_box_seal_open(
             $this->encryptedKey,
             $keyPair
         );
 
-        if (sodium_crypto_aead_aes256gcm_is_available()) {
-            $decrypted = sodium_crypto_aead_aes256gcm_decrypt(
-                $this->cipherText,
-                $this->authTag,
-                $this->iv,
-                $plaintextCek
-            );
-            if ($decrypted === false) {
-                throw new RuntimeException(sprintf(
-                    "Unable to decrypt secrets. Verify the configured key pair"
-                ));
-            }
-        } else {
-            //TODO add alt decryption method
-            $decrypted = "";
+        $decrypted = sodium_crypto_aead_aes256gcm_decrypt(
+            $this->cipherText,
+            $this->authTag,
+            $this->iv,
+            $plaintextCek
+        );
+        if ($decrypted === false) {
+            throw new RuntimeException(sprintf(
+                "Unable to decrypt secrets. Verify the configured key pair"
+            ));
         }
 
         return $decrypted;

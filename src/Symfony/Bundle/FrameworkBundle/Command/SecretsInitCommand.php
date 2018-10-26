@@ -57,7 +57,7 @@ HELP
     {
         //TODO make this command interactive, call this with $overwriteExisting = false first, rescue overwrite error,
         // and prompt user for whether or not you should overwrite
-        $this->secretsHandler->initSecretsFiles($overwriteExisting = true);        
+        $this->secretsHandler->initSecretsFiles($overwriteExisting = true);
 
         $this->io->success('Secrets have been successfully enabled.');
     }
