@@ -4,6 +4,7 @@ namespace Symfony\Component\DependencyInjection\Secrets;
 
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Exception\RuntimeException;
+use Symfony\Component\DependencyInjection\Exception\SecretsOverwriteRequiredException;
 
 final class JweHandler
 {
@@ -58,25 +59,25 @@ final class JweHandler
     public function initSecretsFiles(bool $overwriteExisting): void
     {
         if (!$overwriteExisting) {
+            $requiredOverwrites = array();
             if (file_exists($this->secretsLocation)) {
-                throw new InvalidArgumentException(sprintf(
-                    'secrets file at %s already exists',
-                    $this->secretsLocation
-                ));
+                $requiredOverwrites[] = $this->secretsLocation;
             }
 
             if (file_exists($this->publicKeyLocation)) {
-                throw new InvalidArgumentException(sprintf(
-                    'public key file at %s already exists',
-                    $this->publicKeyLocation
-                ));
+                $requiredOverwrites[] = $this->publicKeyLocation;
             }
 
             if (file_exists($this->privateKeyLocation)) {
-                throw new InvalidArgumentException(sprintf(
-                    'private key file at %s already exists',
-                    $this->privateKeyLocation
-                ));
+                $requiredOverwrites[] = $this->privateKeyLocation;
+
+            }
+
+            if (!empty($requiredOverwrites)) {
+                throw new SecretsOverwriteRequiredException(sprintf(
+                    'secrets files at %s already exist',
+                    implode(', ', $requiredOverwrites)
+                ), $requiredOverwrites);
             }
         }
 
@@ -98,7 +99,14 @@ final class JweHandler
         if ($this->isValidSecretsFile($plaintextLocation) && $plaintextSecrets = $this->readSecrets($plaintextLocation)) {
             $this->secrets = array();
             foreach ($plaintextSecrets as $key => $secret) {
-                $this->addEntry($key, $secret);
+                if (!preg_match('/^(?:\w++:)*+\w++$/', $key)) {
+                    throw new \InvalidArgumentException(sprintf(
+                        'The name for %s is invalid, secrets cannot be updated. Only "word" characters can be used in variable names.',
+                        $key
+                    ));
+                }
+
+                $this->secrets[$key] = JweEntry::encrypt($secret, $this->getPublicKey());
             }
         } else {
             throw new InvalidArgumentException(sprintf(

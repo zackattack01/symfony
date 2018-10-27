@@ -7,6 +7,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Secrets\JweHandler;
+use Symfony\Component\DependencyInjection\Exception\SecretsOverwriteRequiredException;
 
 /**
  * Console command to set up encrypted secrets
@@ -51,10 +52,29 @@ HELP
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        //TODO make this command interactive, call this with $overwriteExisting = false first, rescue overwrite error,
-        // and prompt user for whether or not you should overwrite
-        $this->secretsHandler->initSecretsFiles($overwriteExisting = true);
+        try {
+            $this->secretsHandler->initSecretsFiles($overwriteExisting = false);
+        } catch (SecretsOverwriteRequiredException $e) {
+            $permissionToOverwrite = $this->io->ask(
+                sprintf(
+                    'Secrets files already exist at: %s. Do you wish to overwrite these files? (y/n)',
+                    implode(', ', $e->getExistingFileLocations())
+                ),
+                'n',
+                function ($choice): bool {
+                    return !empty($choice) && 'y' === strtolower($choice);
+                }
+            );
 
-        $this->io->success('Secrets have been successfully enabled.');
+            if ($permissionToOverwrite) {
+                $this->secretsHandler->initSecretsFiles($overwriteExisting = true);
+                $this->io->success('Secrets have been successfully enabled.');
+            } else {
+                $this->io->warning(sprintf(
+                    'Secrets files were previously created. %s aborted.',
+                    self::getDefaultName()
+                ));
+            }
+        }
     }
 }

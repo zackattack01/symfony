@@ -39,8 +39,8 @@ add the pair to the json secrets file configured by encrypted_secrets.secrets_fi
 Always store your private key in a secure location outside of version control; you will not be able to recover your secrets without it.
 HELP
             )
-            ->addArgument('secret-name', InputArgument::REQUIRED, 'The variable name of the secret (e.g., DATABASE_URL).')
-            ->addArgument('secret-value', InputArgument::REQUIRED, 'The secret to be encrypted.')
+            ->addArgument('secret-name', InputArgument::OPTIONAL, 'The variable name of the secret (e.g., DATABASE_URL).')
+            ->addArgument('secret-value', InputArgument::OPTIONAL, 'The secret to be encrypted.')
         ;
     }
 
@@ -57,12 +57,35 @@ HELP
         $name = $input->getArgument('secret-name');
         $secretValue = $input->getArgument('secret-value');
 
+        if (null === $name || null === $secretValue) {
+            $name = $this->io->ask('Enter the variable name for the secret', $default = null, function ($nameGiven) {
+                return $this->validateUserInput($nameGiven);
+            });
+
+            $secretValue = $this->io->ask('Enter the secret value', $default = null, function ($valueGiven) {
+                return $this->validateUserInput($valueGiven, $restrictToWords = false);
+            });
+        }
+
         $this->secretsHandler->addEntry($name, $secretValue);
-        //TODO- $this->secretsHandler->validateEncryptedSecrets();
 
         $this->io->success(sprintf(
             'Secret for %s has been successfully added.',
             $name
         ));
+    }
+
+    private function validateUserInput($value, bool $restrictToWords = true)
+    {
+        $trimmed = trim($value, " \t\n\r\0\x0B\"\'");
+        if (empty($value) || 0 === \strlen($trimmed)) {
+            throw new \InvalidArgumentException('The value provided cannot be empty');
+        }
+
+        if ($restrictToWords && !preg_match('/^(?:\w++:)*+\w++$/', $trimmed)) {
+            throw new \InvalidArgumentException('Only "word" characters are allowed.');
+        }
+
+        return $trimmed;
     }
 }

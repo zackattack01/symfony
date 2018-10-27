@@ -79,6 +79,7 @@ HELP
         try {
             $this->secretsHandler->writePlaintext($tempFileName);
             system("$editor $tempFileName > `tty`");
+            //TODO better feedback for invalid key arguments and prompt user to retry
             $this->secretsHandler->regenerateEncryptedEntries($tempFileName);
         } finally {
             unlink($tempFileName);
