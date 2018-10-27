@@ -4,17 +4,15 @@ namespace Symfony\Bundle\FrameworkBundle\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 
 /**
  * Console command to update your encrypted_secrets public/private key pair
- * Usage: php bin/console secrets:update-keypair
+ * Usage: php bin/console secrets:update-keypair.
  */
-class SecretsUpdateKeyPairCommand extends Command
+class SecretsUpdateKeypairCommand extends Command
 {
     protected static $defaultName = 'secrets:update-keypair';
     private $io;
@@ -65,4 +63,3 @@ HELP
         $this->io->success('Secrets have been successfully encrypted. Be sure to store the private key used in a secure location.');
     }
 }
-

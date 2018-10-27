@@ -4,23 +4,19 @@ namespace Symfony\Bundle\FrameworkBundle\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 
 /**
  * Console command to set up encrypted secrets
- * Usage: php bin/console secrets:init
+ * Usage: php bin/console secrets:init.
  */
 class SecretsInitCommand extends AbstractConfigCommand
 {
     protected static $defaultName = 'secrets:init';
     private $io;
     private $secretsHandler;
-
 
     public function __construct(JweHandler $secretsHandler)
     {
@@ -62,4 +58,3 @@ HELP
         $this->io->success('Secrets have been successfully enabled.');
     }
 }
-

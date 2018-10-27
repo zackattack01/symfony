@@ -7,22 +7,21 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 
 /**
  * Console command to temporarily decrypt and allow editing of encrypted secrets file
- * Usage: php bin/console secrets:edit
+ * Usage: php bin/console secrets:edit.
  */
 class SecretsEditCommand extends Command
 {
     const DEFAULT_EDITOR = 'vi';
-    const SUPPORTED_EDITORS = [
+    const SUPPORTED_EDITORS = array(
         'nano',
         'emacs',
         'vi',
-        'vim'
-    ];
+        'vim',
+    );
 
     protected static $defaultName = 'secrets:edit';
     private $io;
@@ -39,8 +38,8 @@ class SecretsEditCommand extends Command
      */
     protected function configure()
     {
-        $supportedEditorsLine = implode(", ", array_slice(self::SUPPORTED_EDITORS, 0, -1));
-        $supportedEditorsLine .= ", and ".array_values(array_slice(self::SUPPORTED_EDITORS, -1))[0];
+        $supportedEditorsLine = implode(', ', \array_slice(self::SUPPORTED_EDITORS, 0, -1));
+        $supportedEditorsLine .= ', and '.array_values(\array_slice(self::SUPPORTED_EDITORS, -1))[0];
         $this
             ->setDescription('Opens an editor session with decrypted secrets and re-encrypts file to the provided location')
             ->setHelp(<<<'HELP'
@@ -62,7 +61,6 @@ HELP
                 InputOption::VALUE_REQUIRED,
                 "Preferred text editor. Supported editors include $supportedEditorsLine. Defaults to ".self::DEFAULT_EDITOR
             );
-        ;
     }
 
     /**
@@ -77,7 +75,7 @@ HELP
     {
         $editor = $input->getOption('editor') ?? self::DEFAULT_EDITOR;
 
-        $tempFileName = tempnam(sys_get_temp_dir(), "");
+        $tempFileName = tempnam(sys_get_temp_dir(), '');
         try {
             $this->secretsHandler->writePlaintext($tempFileName);
             system("$editor $tempFileName > `tty`");
@@ -89,4 +87,3 @@ HELP
         $this->io->success('Secrets have been successfully encrypted. Be sure to store the private key used in a secure location.');
     }
 }
-
