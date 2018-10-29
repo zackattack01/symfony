@@ -70,7 +70,6 @@ final class JweHandler
 
             if (file_exists($this->privateKeyLocation)) {
                 $requiredOverwrites[] = $this->privateKeyLocation;
-
             }
 
             if (!empty($requiredOverwrites)) {
@@ -96,7 +95,8 @@ final class JweHandler
     public function regenerateEncryptedEntries(string $plaintextLocation): void
     {
         $this->validateConfig();
-        if ($this->isValidSecretsFile($plaintextLocation) && $plaintextSecrets = $this->readSecrets($plaintextLocation)) {
+        if ($this->isValidSecretsFile($plaintextLocation) &&
+            false !== $plaintextSecrets = $this->readSecrets($plaintextLocation)) {
             $this->secrets = array();
             foreach ($plaintextSecrets as $key => $secret) {
                 if (!preg_match('/^(?:\w++:)*+\w++$/', $key)) {
@@ -131,7 +131,6 @@ final class JweHandler
             $this->writePlaintext($tempSecretsLocation);
             $this->writeNewKeyPair();
             $this->regenerateEncryptedEntries($tempSecretsLocation);
-            $this->writeEncrypted();
         } finally {
             unlink($tempSecretsLocation);
         }
@@ -150,7 +149,7 @@ final class JweHandler
             ));
         }
 
-        if (!$this->populateSecrets()) {
+        if (false === $this->populateSecrets()) {
             throw new InvalidArgumentException(sprintf(
                 'encrypted_secrets.secrets_file location %s must contain valid json secrets',
                 $this->secretsLocation
@@ -236,7 +235,7 @@ final class JweHandler
 
     private function readKey(string $keyLocation)
     {
-        return trim(file_get_contents($keyLocation));
+        return file_get_contents($keyLocation);
     }
 
     /**

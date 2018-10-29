@@ -12,13 +12,14 @@
 namespace Symfony\Component\DependencyInjection\Exception;
 
 
-class SecretsOverwriteRequiredException extends \InvalidArgumentException implements ExceptionInterface
+final class SecretsOverwriteRequiredException extends \InvalidArgumentException implements ExceptionInterface
 {
     private $existingFileLocations;
 
     public function __construct(string $message, array $existingFileLocations)
     {
         $this->existingFileLocations = $existingFileLocations;
+        parent::__construct($message);
     }
 
     public function getExistingFileLocations()

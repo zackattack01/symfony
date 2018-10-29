@@ -13,7 +13,7 @@ use Symfony\Component\DependencyInjection\Secrets\JweHandler;
  * Console command to temporarily decrypt and allow editing of encrypted secrets file
  * Usage: php bin/console secrets:edit.
  */
-class SecretsEditCommand extends Command
+final class SecretsEditCommand extends Command
 {
     const DEFAULT_EDITOR = 'vi';
     const SUPPORTED_EDITORS = array(
@@ -44,8 +44,6 @@ class SecretsEditCommand extends Command
             ->setDescription('Opens an editor session with decrypted secrets and re-encrypts file to the provided location')
             ->setHelp(<<<'HELP'
 The <info>%command.name%</info> opens an editor session with decrypted secrets and re-encrypts the file to the configured location.
-
-encrypted_secrets.enabled must set to true in your yaml config for the environment you are running this in.
 
   <info>php %command.full_name%</info>
 

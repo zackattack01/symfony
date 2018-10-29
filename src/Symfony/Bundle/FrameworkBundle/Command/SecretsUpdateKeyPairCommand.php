@@ -12,7 +12,7 @@ use Symfony\Component\DependencyInjection\Secrets\JweHandler;
  * Console command to update your encrypted_secrets public/private key pair
  * Usage: php bin/console secrets:update-keypair.
  */
-class SecretsUpdateKeyPairCommand extends Command
+final class SecretsUpdateKeyPairCommand extends Command
 {
     protected static $defaultName = 'secrets:update-keypair';
     private $io;
@@ -38,10 +38,6 @@ The <info>%command.name%</info> updates your encrypted_secrets public/private ke
 
 will temporarily decrypt the values from the json secrets file set by encrypted_secrets.secrets_file using the public and private key pair specified by
 encrypted_secrets.public_key_file and encrypted_secrets.private_key_file. It will then generate a new key pair, re-encrypt your secrets, and update the public and private key files.
-
-After running this command, use
-
-  <info>php bin/console secrets:add</info> or <info>php bin/console secrets:edit</info> to modify your secrets.
 
 Always store your private key in a secure location outside of version control; you will not be able to recover your secrets without it.
 HELP

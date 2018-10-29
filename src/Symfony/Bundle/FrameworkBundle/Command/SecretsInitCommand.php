@@ -10,10 +10,10 @@ use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 use Symfony\Component\DependencyInjection\Exception\SecretsOverwriteRequiredException;
 
 /**
- * Console command to set up encrypted secrets
+ * Console command to set up encrypted secrets files
  * Usage: php bin/console secrets:init.
  */
-class SecretsInitCommand extends AbstractConfigCommand
+final class SecretsInitCommand extends Command
 {
     protected static $defaultName = 'secrets:init';
     private $io;
@@ -31,10 +31,14 @@ class SecretsInitCommand extends AbstractConfigCommand
     protected function configure()
     {
         $this
-            ->setDescription('Set up encrypted_secrets public/private keypair and encrypted secrets file')
+            ->setDescription('Set up encrypted_secrets public/private key pair and encrypted secrets file')
             ->setHelp(<<<'HELP'
 The <info>%command.name%</info> command creates an empty secrets file based on the location configured encrypted_secrets.secrets_file,
 and generates a key pair based on the values set in encrypted_secrets.private_key_file and encrypted_secrets.public_key_file.
+
+After running this command, use
+
+  <info>php bin/console secrets:add</info> or <info>php bin/console secrets:edit</info> to modify your secrets.
 
 Always store your private key in a secure location outside of version control; you will not be able to recover your secrets without it.
 HELP
@@ -54,6 +58,7 @@ HELP
     {
         try {
             $this->secretsHandler->initSecretsFiles($overwriteExisting = false);
+            $this->io->success('Secrets files have been initialized.');
         } catch (SecretsOverwriteRequiredException $e) {
             $permissionToOverwrite = $this->io->ask(
                 sprintf(
@@ -68,7 +73,7 @@ HELP
 
             if ($permissionToOverwrite) {
                 $this->secretsHandler->initSecretsFiles($overwriteExisting = true);
-                $this->io->success('Secrets have been successfully enabled.');
+                $this->io->success('Secrets files have been initialized. Existing files were overwritten.');
             } else {
                 $this->io->warning(sprintf(
                     'Secrets files were previously created. %s aborted.',

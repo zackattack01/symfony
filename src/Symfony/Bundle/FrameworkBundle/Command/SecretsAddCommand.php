@@ -9,7 +9,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 
-class SecretsAddCommand extends Command
+final class SecretsAddCommand extends Command
 {
     protected static $defaultName = 'secrets:add';
     private $io;
@@ -27,14 +27,15 @@ class SecretsAddCommand extends Command
     protected function configure()
     {
         $this
-            ->setDescription('Encrypt and add a secret key value pair to the specified secrets file')
+            ->setDescription('Encrypt and add a secret key value pair to the configured secrets file')
             ->setHelp(<<<'HELP'
-The <info>%command.name%</info> command adds an encrypted secret to the secrets-file configured in encrypted_secrets.secrets_file
+The <info>%command.name%</info> command adds an encrypted secret to the file configured in encrypted_secrets.secrets_file
 
   <info>php %command.full_name% DATABASE_URL mysql://db_user:db_password@127.0.0.1:3306/db_name</info>
 
-will encrypt the value for DATABASE_URL using the public key file specified in encrypted_secrets.public_key_file, and
-add the pair to the json secrets file configured by encrypted_secrets.secrets_file.
+will encrypt the value for DATABASE_URL using the public key file specified in encrypted_secrets.public_key_file. The private key is not required to add or overwrite secrets.
+If the secret name and value are not provided, you will be prompted to provide one. Secret names should follow the same structure as env variables used in your config.
+They cannot be empty, and should contain only word characters.
 
 Always store your private key in a secure location outside of version control; you will not be able to recover your secrets without it.
 HELP
