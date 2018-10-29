@@ -9,10 +9,6 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 use Symfony\Component\DependencyInjection\Exception\SecretsOverwriteRequiredException;
 
-/**
- * Console command to set up encrypted secrets files
- * Usage: php bin/console secrets:init.
- */
 final class SecretsInitCommand extends Command
 {
     protected static $defaultName = 'secrets:init';

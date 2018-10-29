@@ -76,7 +76,11 @@ HELP
         ));
     }
 
-    private function validateUserInput($value, bool $restrictToWords = true)
+    /**
+     * @param $value string|null
+     * @throws \InvalidArgumentException if value is missing, blank, or if $restrictToWords is true and value contains non-word characters
+     */
+    private function validateUserInput($value, bool $restrictToWords = true): string
     {
         $trimmed = trim($value, " \t\n\r\0\x0B\"\'");
         if (empty($value) || 0 === \strlen($trimmed)) {

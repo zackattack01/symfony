@@ -31,6 +31,16 @@ final class JweEntry
         return $entry->compact();
     }
 
+    private function base64url_encode($data)
+    {
+        return urlencode(base64_encode($data));
+    }
+
+    private function base64url_decode($data)
+    {
+        return base64_decode(urldecode($data));
+    }
+
     // see the JWE compact serialization format for details https://tools.ietf.org/html/rfc7516#section-7.1
     private function compact()
     {
@@ -65,6 +75,13 @@ final class JweEntry
         }
 
         return $decrypted;
+    }
+
+    private function generateHeader()
+    {
+        //TODO: can you force utf8 in string declaration in php?
+        //TODO: figure out correct name for alg
+        return '{"alg":"curve25519xsalsa20poly1305","enc":"A256GCM"}';
     }
 
     private function hydrate(string $compactedEntry)
@@ -107,22 +124,5 @@ final class JweEntry
         //mb_convert_encoding($additionalData, "ASCII");
         $this->authTag = $additionalData;
         $this->cipherText = $ciphertext;
-    }
-
-    private function base64url_encode($data)
-    {
-        return urlencode(base64_encode($data));
-    }
-
-    private function base64url_decode($data)
-    {
-        return base64_decode(urldecode($data));
-    }
-
-    private function generateHeader()
-    {
-        //TODO: can you force utf8 in string declaration in php?
-        //TODO: figure out correct name for alg
-        return '{"alg":"curve25519xsalsa20poly1305","enc":"A256GCM"}';
     }
 }

@@ -8,10 +8,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 
-/**
- * Console command to update your encrypted_secrets public/private key pair
- * Usage: php bin/console secrets:update-keypair.
- */
 final class SecretsUpdateKeyPairCommand extends Command
 {
     protected static $defaultName = 'secrets:update-keypair';

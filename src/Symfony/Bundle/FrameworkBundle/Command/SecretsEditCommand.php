@@ -9,10 +9,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 
-/**
- * Console command to temporarily decrypt and allow editing of encrypted secrets file
- * Usage: php bin/console secrets:edit.
- */
 final class SecretsEditCommand extends Command
 {
     const DEFAULT_EDITOR = 'vi';
