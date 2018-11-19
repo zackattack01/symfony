@@ -53,22 +53,19 @@ HELP
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         try {
-            $this->secretsHandler->initSecretsFiles($overwriteExisting = false);
+            $this->secretsHandler->initSecretsFiles(false);
             $this->io->success('Secrets files have been initialized.');
         } catch (SecretsOverwriteRequiredException $e) {
-            $permissionToOverwrite = $this->io->ask(
+            $permissionToOverwrite = $this->io->confirm(
                 sprintf(
-                    'Secrets files already exist at: %s. Do you wish to overwrite these files? (y/n)',
+                    'Secrets files already exist at: %s. Do you wish to overwrite these files?',
                     implode(', ', $e->getExistingFileLocations())
                 ),
-                'n',
-                function ($choice): bool {
-                    return !empty($choice) && 'y' === strtolower($choice);
-                }
+                false
             );
 
             if ($permissionToOverwrite) {
-                $this->secretsHandler->initSecretsFiles($overwriteExisting = true);
+                $this->secretsHandler->initSecretsFiles(true);
                 $this->io->success('Secrets files have been initialized. Existing files were overwritten.');
             } else {
                 $this->io->warning(sprintf(

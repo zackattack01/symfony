@@ -785,10 +785,6 @@ class FrameworkExtension extends Extension
                   ->addArgument($secretsFile)
                   ->addArgument($publicKeyFile)
                   ->addArgument($privateKeyFile);
-
-        $handler = new Reference('secrets.jwe_handler');
-        $container->getDefinition('secrets.secret_var_processor')
-                  ->addArgument($handler);
     }
 
     private function registerTemplatingConfiguration(array $config, ContainerBuilder $container, XmlFileLoader $loader)
