@@ -58,14 +58,14 @@ HELP
         $name = $input->getArgument('secret-name');
         $secretValue = $input->getArgument('secret-value');
 
-        if (null === $name || null === $secretValue) {
-            $name = $this->io->ask('Enter the variable name for the secret', $default = null, function ($nameGiven) {
-                return $this->validateUserInput($nameGiven);
-            });
+        if (true === $input->hasParameterOption(array('--no-interaction', '-n'))) {
+            if (null === $name || null === $secretValue) {
+                $this->io->error("secret-name and secret-value are required when --no-interaction is specified.");
+                return;
+            }
 
-            $secretValue = $this->io->ask('Enter the secret value', $default = null, function ($valueGiven) {
-                return $this->validateUserInput($valueGiven, $restrictToWords = false);
-            });
+            $name = $this->validateUserInput($name);
+            $secretValue = $this->validateUserInput($secretValue, false);
         }
 
         $this->secretsHandler->addEntry($name, $secretValue);
@@ -74,6 +74,25 @@ HELP
             'Secret for %s has been successfully added.',
             $name
         ));
+    }
+
+    protected function interact(InputInterface $input, OutputInterface $output) {
+        $name = $input->getArgument('secret-name');
+        $secretValue = $input->getArgument('secret-value');
+
+        if (null === $name) {
+            $name = $this->io->ask('Enter the variable name for the secret', $default = null, function ($nameGiven) {
+                return $this->validateUserInput($nameGiven);
+            });
+            $input->setArgument('secret-name', $name);
+        }
+
+        if (null === $secretValue) {
+            $secretValue = $this->io->ask('Enter the secret value', $default = null, function ($valueGiven) {
+                return $this->validateUserInput($valueGiven, false);
+            });
+            $input->setArgument('secret-value', $secretValue);
+        }
     }
 
     /**
