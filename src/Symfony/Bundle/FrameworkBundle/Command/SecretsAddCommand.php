@@ -63,10 +63,10 @@ HELP
                 $this->io->error("secret-name and secret-value are required when --no-interaction is specified.");
                 return;
             }
-
-            $name = $this->validateUserInput($name);
-            $secretValue = $this->validateUserInput($secretValue, false);
         }
+
+        $this->validateUserInput($name);
+        $this->validateUserInput($secretValue, false);
 
         $this->secretsHandler->addEntry($name, $secretValue);
 
@@ -81,15 +81,17 @@ HELP
         $secretValue = $input->getArgument('secret-value');
 
         if (null === $name) {
-            $name = $this->io->ask('Enter the variable name for the secret', $default = null, function ($nameGiven) {
-                return $this->validateUserInput($nameGiven);
+            $name = $this->io->ask('Enter the variable name for the secret', null, function ($nameGiven) {
+                $this->validateUserInput($nameGiven);
+                return $nameGiven;
             });
             $input->setArgument('secret-name', $name);
         }
 
         if (null === $secretValue) {
-            $secretValue = $this->io->ask('Enter the secret value', $default = null, function ($valueGiven) {
-                return $this->validateUserInput($valueGiven, false);
+            $secretValue = $this->io->ask('Enter the secret value', null, function ($valueGiven) {
+                $this->validateUserInput($valueGiven, false);
+                return $valueGiven;
             });
             $input->setArgument('secret-value', $secretValue);
         }
@@ -99,17 +101,14 @@ HELP
      * @param $value string|null
      * @throws \InvalidArgumentException if value is missing, blank, or if $restrictToWords is true and value contains non-word characters
      */
-    private function validateUserInput($value, bool $restrictToWords = true): string
+    private function validateUserInput($value, bool $restrictToWords = true): void
     {
-        $trimmed = trim($value, " \t\n\r\0\x0B\"\'");
-        if (empty($value) || 0 === \strlen($trimmed)) {
-            throw new \InvalidArgumentException('The value provided cannot be empty');
+        if (empty($value)) {
+            throw new \InvalidArgumentException('The secret value provided cannot be empty');
         }
 
-        if ($restrictToWords && !preg_match('/^(?:\w++:)*+\w++$/', $trimmed)) {
+        if ($restrictToWords && !preg_match('/^(?:\w++:)*+\w++$/', $value)) {
             throw new \InvalidArgumentException('Only "word" characters are allowed.');
         }
-
-        return $trimmed;
     }
 }

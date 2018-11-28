@@ -5,6 +5,8 @@ namespace Symfony\Component\DependencyInjection\Secrets;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 use Symfony\Component\DependencyInjection\Exception\SecretsOverwriteRequiredException;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\HttpKernel\KernelInterface;
 
 final class JweHandler
 {
@@ -18,11 +20,17 @@ final class JweHandler
 
     private $secrets;
 
-    public function __construct(string $secretsLocation, string $publicKeyLocation, string $privateKeyLocation = null)
+    private $filesystem;
+
+    private $configDir;
+
+    public function __construct(string $projectDir, string $secretsLocation, string $publicKeyLocation, string $privateKeyLocation = null)
     {
+        $this->configDir = $projectDir . '/config';
         $this->secretsLocation = $secretsLocation;
         $this->publicKeyLocation = $publicKeyLocation;
         $this->privateKeyLocation = $privateKeyLocation;
+        $this->filesystem = new Filesystem();
     }
 
     public function addEntry(string $key, string $secret): void
@@ -83,10 +91,10 @@ final class JweHandler
         $this->writeFile(
             $this->secretsLocation,
             json_encode(array(), self::JSON_ENCODE_OPTIONS),
-            $makeConfigDir = true
+            true
         );
 
-        $this->writeNewKeyPair();
+        $this->writeNewKeyPair(true);
     }
 
     /**
@@ -245,7 +253,7 @@ final class JweHandler
      */
     private function readSecrets(string $secretsLocation)
     {
-        $rawSecrets = trim(file_get_contents($secretsLocation));
+        $rawSecrets = file_get_contents($secretsLocation);
 
         return json_decode($rawSecrets, true);
     }
@@ -257,19 +265,22 @@ final class JweHandler
 
     private function writeFile(string $fileLocation, string $content, $makeConfigDir = false): void
     {
-        $fileDir = pathinfo($fileLocation, PATHINFO_DIRNAME);
+        $dir = \dirname($fileLocation);
 
-        if (!is_dir($fileDir)) {
-            //TODO make this read whatever the dev's absolute config path is and check against that
-            if ($makeConfigDir && ('config' === pathinfo($fileDir, PATHINFO_DIRNAME))) {
-                mkdir($fileDir);
+        if (!is_dir($dir)) {
+            if ($makeConfigDir && (\dirname($dir) === $this->configDir)) {
+                $this->filesystem->mkdir($dir);
             } else {
                 throw new InvalidArgumentException(sprintf(
-                    'directory %s for encrypted secrets file location %s does not exist',
-                    $fileDir,
+                    'directory %s for %s does not exist',
+                    $dir,
                     $fileLocation
                 ));
             }
+        }
+
+        if (!file_exists($fileLocation) && is_writable($dir)) {
+            $this->filesystem->touch($fileLocation);
         }
 
         if (!is_writable($fileLocation)) {
@@ -282,10 +293,10 @@ final class JweHandler
         file_put_contents($fileLocation, $content);
     }
 
-    private function writeNewKeyPair(): void
+    private function writeNewKeyPair($makeConfigDir = false): void
     {
         $newKeyPair = sodium_crypto_box_keypair();
-        $this->writeFile($this->privateKeyLocation, sodium_crypto_box_secretkey($newKeyPair));
-        $this->writeFile($this->publicKeyLocation, sodium_crypto_box_publickey($newKeyPair));
+        $this->writeFile($this->privateKeyLocation, sodium_crypto_box_secretkey($newKeyPair), $makeConfigDir);
+        $this->writeFile($this->publicKeyLocation, sodium_crypto_box_publickey($newKeyPair), $makeConfigDir);
     }
 }

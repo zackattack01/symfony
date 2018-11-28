@@ -78,13 +78,12 @@ final class JweEntry
 
     private function generateHeader()
     {
-        //TODO: figure out correct name for alg
+        //TODO: remove header logic if full JWE implementation is not required
         return '{"alg":"curve25519xsalsa20poly1305","enc":"A256GCM"}';
     }
 
     private function hydrate(string $compactedEntry)
     {
-        //TODO add validations
         list($header, $encryptedKey, $iv, $cipherText, $authTag) = explode('.', $compactedEntry);
         $this->header = $this->base64url_decode($header);
         $this->encryptedKey = sodium_base642bin($encryptedKey, SODIUM_BASE64_VARIANT_URLSAFE);
