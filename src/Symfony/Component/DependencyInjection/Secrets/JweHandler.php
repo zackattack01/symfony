@@ -110,8 +110,8 @@ final class JweHandler
         $encryptedSecrets = array();
         foreach ($plaintextSecrets as $key => $secret) {
             if (!preg_match('/^(?:\w++:)*+\w++$/', $key)) {
-                throw new \InvalidArgumentException(sprintf(
-                    'The name for %s is invalid, secrets cannot be updated. Only "word" characters can be used in variable names.',
+                throw new InvalidArgumentException(sprintf(
+                    'The name for %s is invalid, secrets cannot be updated. Only "word" characters can be used in variable names',
                     $key
                 ));
             }
@@ -126,7 +126,7 @@ final class JweHandler
     /**
      * generates a new key pair, and writes it to the configured public and private key locations after re-encrypting secrets.
      *
-     * @throws InvalidArgumentException if the $publicKeyLocation or $privateKeyLocation cannot be written
+     * @throws RuntimeException if the $publicKeyLocation or $privateKeyLocation cannot be written
      */
     public function updateKeyPair(): void
     {
@@ -193,6 +193,9 @@ final class JweHandler
         return $this->readSecrets($this->encryptedLocation);
     }
 
+    /**
+     * @throws RuntimeException if the plaintextLocation is not set
+     */
     private function getPlaintextSecrets()
     {
         if (!isset($this->plaintextLocation)) {
@@ -202,6 +205,9 @@ final class JweHandler
         return $this->readSecrets($this->plaintextLocation);
     }
 
+    /**
+     * @throws InvalidArgumentException if the private key file is not set or does not exist and point to a valid 32 byte key file
+     */
     private function getPrivateKey(): string
     {
         if (!isset($this->privateKeyLocation)) {
@@ -219,6 +225,9 @@ final class JweHandler
         return $this->readKey($this->privateKeyLocation);
     }
 
+    /**
+     * @throws InvalidArgumentException if the public key file does not exist or does not point to a valid 32 byte key file
+     */
     private function getPublicKey(): string
     {
         if (!$this->isValidKeyLocation($this->publicKeyLocation)) {
@@ -267,9 +276,9 @@ final class JweHandler
         $rawSecrets = file_get_contents($secretsLocation);
         $secrets = json_decode($rawSecrets, true);
 
-        if (false === $secrets) {
+        if (null === $secrets) {
             throw new InvalidArgumentException(sprintf(
-                'encrypted_secrets.secrets_file location %s must contain valid json secrets',
+                'The encrypted secrets at %s must contain valid json to be decoded',
                 $secretsLocation
             ));
         }
@@ -287,6 +296,9 @@ final class JweHandler
         $this->writeFile($this->encryptedLocation, json_encode($this->getEncryptedSecrets(), self::JSON_ENCODE_OPTIONS));
     }
 
+    /**
+     * @throws InvalidArgumentException if the file location cannot be written to
+     */
     private function writeFile(string $fileLocation, string $content, $makeConfigDir = false): void
     {
         $dir = \dirname($fileLocation);

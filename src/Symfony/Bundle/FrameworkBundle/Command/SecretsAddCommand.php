@@ -76,7 +76,8 @@ HELP
         ));
     }
 
-    protected function interact(InputInterface $input, OutputInterface $output) {
+    protected function interact(InputInterface $input, OutputInterface $output)
+    {
         $name = $input->getArgument('secret-name');
         $secretValue = $input->getArgument('secret-value');
 

@@ -7,6 +7,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 
 final class SecretsEditCommand extends Command
@@ -22,6 +23,7 @@ final class SecretsEditCommand extends Command
     protected static $defaultName = 'secrets:edit';
     private $io;
     private $secretsHandler;
+    private $successfulUpdate = false;
 
     public function __construct(JweHandler $secretsHandler)
     {
@@ -67,18 +69,43 @@ HELP
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        if ($this->successfulUpdate) {
+            $this->io->success('Secrets have been successfully encrypted. Be sure to store the private key used in a secure location.');
+        } else {
+            $this->io->warning(sprintf(
+                'Secrets could not be edited. %s aborted.',
+                self::getDefaultName()
+            ));
+        }
+    }
+
+    protected function interact(InputInterface $input, OutputInterface $output)
+    {
         $editor = $input->getOption('editor') ?? self::DEFAULT_EDITOR;
 
         $tempFileName = tempnam(sys_get_temp_dir(), '');
+        $promptForEdit = true;
         try {
-            $this->secretsHandler->writePlaintext($tempFileName);
-            system("$editor $tempFileName > `tty`");
-            //TODO better feedback for invalid key arguments and prompt user to retry
-            $this->secretsHandler->regenerateEncryptedEntries();
+            while ($promptForEdit) {
+                try {
+                    $this->secretsHandler->writePlaintext($tempFileName);
+                    system("$editor $tempFileName > `tty`");
+                    $this->secretsHandler->regenerateEncryptedEntries();
+                    $this->successfulUpdate = true;
+                    $promptForEdit = false;
+                } catch (InvalidArgumentException $e) {
+                    $promptForEdit = $this->io->confirm(
+                        sprintf(
+                            '%s. Would you like to attempt the edit again?',
+                            $e->getMessage()
+                        ),
+                        false
+                    );
+                }
+
+            }
         } finally {
             unlink($tempFileName);
         }
-
-        $this->io->success('Secrets have been successfully encrypted. Be sure to store the private key used in a secure location.');
     }
 }
