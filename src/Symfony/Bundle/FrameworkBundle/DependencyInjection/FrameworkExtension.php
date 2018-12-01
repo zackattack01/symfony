@@ -44,6 +44,7 @@ use Symfony\Component\DependencyInjection\Parameter;
 use Symfony\Component\DependencyInjection\ParameterBag\ContainerBagInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\DependencyInjection\Secrets\JweHandler;
 use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\DependencyInjection\ServiceSubscriberInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -164,6 +165,11 @@ class FrameworkExtension extends Extension
 
         if (isset($config['secret'])) {
             $container->setParameter('kernel.secret', $config['secret']);
+        }
+
+        if ($this->isConfigEnabled($container, $config['encrypted_secrets'])) {
+            $loader->load('secrets.xml');
+            $this->registerEncryptedSecretsConfiguration($config, $container);
         }
 
         $container->setParameter('kernel.http_method_override', $config['http_method_override']);
@@ -767,6 +773,18 @@ class FrameworkExtension extends Extension
                 ->replaceArgument(0, $config['formats'])
             ;
         }
+    }
+
+    private function registerEncryptedSecretsConfiguration(array $config, ContainerBuilder $container)
+    {
+        $container->removeDefinition('secrets.noop_secret_var_processor');
+        $secretsFile = $config['encrypted_secrets']['secrets_file'];
+        $publicKeyFile = $config['encrypted_secrets']['public_key_file'];
+        $privateKeyFile = $config['encrypted_secrets']['private_key_file'];
+        $container->getDefinition('secrets.jwe_handler')
+                  ->addArgument($secretsFile)
+                  ->addArgument($publicKeyFile)
+                  ->addArgument($privateKeyFile);
     }
 
     private function registerTemplatingConfiguration(array $config, ContainerBuilder $container, XmlFileLoader $loader)

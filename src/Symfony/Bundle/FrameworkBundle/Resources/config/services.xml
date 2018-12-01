@@ -71,5 +71,9 @@
         </service>
 
         <service id="services_resetter" class="Symfony\Component\HttpKernel\DependencyInjection\ServicesResetter" public="true" />
+
+        <service id="secrets.noop_secret_var_processor" class="Symfony\Component\DependencyInjection\NoopSecretVarProcessor" >
+            <tag name="container.env_var_processor" priority="-992" />
+        </service>
     </services>
 </container>

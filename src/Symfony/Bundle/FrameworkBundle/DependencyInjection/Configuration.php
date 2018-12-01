@@ -105,6 +105,7 @@ class Configuration implements ConfigurationInterface
         $this->addWebLinkSection($rootNode);
         $this->addLockSection($rootNode);
         $this->addMessengerSection($rootNode);
+        $this->addEncryptedSecretsSection($rootNode);
 
         return $treeBuilder;
     }
@@ -1111,6 +1112,59 @@ class Configuration implements ConfigurationInterface
                                 ->end()
                             ->end()
                         ->end()
+                    ->end()
+                ->end()
+            ->end()
+        ;
+    }
+
+    private function addEncryptedSecretsSection(ArrayNodeDefinition $rootNode)
+    {
+        $rootNode
+            ->children()
+                ->arrayNode('encrypted_secrets')
+                    ->info('encrypted secrets configuration')
+                    ->canBeEnabled()
+                    ->children()
+                        ->scalarNode('secrets_file')
+                            ->info('Path to where the encrypted secrets should be stored')
+                            ->example("'%kernel.project_dir%/config/secrets/secrets.enc.json' to set the file location to config/secrets.enc.json")
+                            ->defaultValue('%kernel.project_dir%/config/secrets/secrets.enc.json')
+                        ->end()
+                        ->scalarNode('private_key_file')
+                            ->info('Path to the private key used to decrypt the secrets')
+                            ->example('/etc/your-project-name/.master-key')
+                            ->defaultNull()
+                            ->validate()
+                                ->ifTrue(function ($v) { return !(\is_string($v) && !\is_null($v)); })
+                                ->thenInvalid('If set, the "encrypted_secrets.private_key_file" should be a string path to an existing file containing a 32 byte private key')
+                            ->end()
+                        ->end()
+                        ->scalarNode('public_key_file')
+                            ->info('Path to the public key used to encrypt the secrets')
+                            ->example('%kernel.project_dir%/config/secrets.pub')
+                            ->defaultValue('%kernel.project_dir%/config/secrets/secrets.pub')
+                        ->end()
+                    ->end()
+                    ->validate()
+                        ->ifTrue(function($config) { return isset($config['enabled']) && true === $config['enabled'] && !\extension_loaded('libsodium'); })
+                        ->thenInvalid('Encrypted secrets are not supported. Please install the libsodium extension or upgrade to PHP 7.2+.')
+                        ->ifTrue(function($config) { return isset($config['enabled']) && true === $config['enabled'] && !\sodium_crypto_aead_aes256gcm_is_available(); })
+                        ->thenInvalid('This CPU does not support the implementation of AES256-GCM encryption at this time, encrypted_secrets cannot be used on this machine. See https://libsodium.gitbook.io/doc/secret-key_cryptography/aead/aes-256-gcm for the specific hardware limitations.')
+                        ->ifTrue(function($config) {
+                            if (isset($config['enabled']) && true === $config['enabled']) {
+                                if (!isset($config['secrets_file']) || !\is_string($config['secrets_file'])) {
+                                    return true;
+                                }
+
+                                if (!isset($config['public_key_file']) || !\is_string($config['public_key_file'])) {
+                                    return true;
+                                }
+                            }
+
+                            return false;
+                        })
+                        ->thenInvalid('If encrypted_secrets are enabled, the public_key_file and secrets_file should be string paths to the file locations')
                     ->end()
                 ->end()
             ->end()
