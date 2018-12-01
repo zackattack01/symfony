@@ -69,6 +69,15 @@ HELP
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        if (true === $input->hasParameterOption(array('--no-interaction', '-n'))) {
+            $this->io->error(sprintf(
+                "The %s command requires user interaction, use the secrets:add command to update or add secrets with --no-interaction.",
+                self::getDefaultName()
+            ));
+
+            return;
+        }
+
         if ($this->successfulUpdate) {
             $this->io->success('Secrets have been successfully encrypted. Be sure to store the private key used in a secure location.');
         } else {
